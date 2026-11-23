@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { ArrowDownRight,ArrowUpRight, BriefcaseBusiness, Code2, ExternalLink, Globe2, GraduationCap, MapPin, Sparkles, UserRound } from "lucide-react";
 import { notFound } from "next/navigation";
 import PortfolioThemes, {type NewTheme} from "@/components/portfolio-themes";
+import ExpansionThemes,{type ExpansionTheme} from "@/components/portfolio-expansion";
 export const dynamic="force-dynamic";
 
 type Snap={
@@ -38,6 +39,14 @@ export default async function PublicPortfolio({params}:{params:Promise<{slug:str
  const educations=Array.isArray(s.education)?s.education:[];
  const experiences=Array.isArray(s.experience)?s.experience:[];
  const avatar=s.avatar?validAvatar(s.avatar):null,website=s.website?validWebsite(s.website):null;
+ if(["sunny","student3d","noirluxe"].includes(portfolio.template)){
+  return <ExpansionThemes theme={portfolio.template as ExpansionTheme} name={name} headline={s.headline||""}
+   bio={s.bio||""} location={s.location||""} avatar={avatar||""} website={website||""}
+   skills={skills.map(x=>({name:x.name}))}
+   projects={projects.map(x=>({title:x.title,description:x.description,url:x.url}))}
+   education={educations.map(x=>({institution:x.institution,qualification:x.qualification,field:x.field,start:x.start,end:x.end,description:x.description}))}
+   experience={experiences.map(x=>({company:x.company,role:x.role,start:x.start,end:x.end,description:x.description}))}/>;
+ }
  if(["amber","neon","crimson"].includes(portfolio.template)){
    return <PortfolioThemes theme={portfolio.template as NewTheme}
     name={name} headline={s.headline||""} bio={s.bio||""} location={s.location||""}
