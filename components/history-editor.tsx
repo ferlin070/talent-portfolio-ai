@@ -20,8 +20,13 @@ export default function HistoryEditor({kind,userId}:{kind:Kind;userId:string}){
  useEffect(()=>{let live=true;(async()=>{try{const {data,error}=await client.from(table).select("*").eq("user_id",userId).order("created_at",{ascending:false});if(error)throw error;if(live){if(kind==="education")setEducation((data||[]) as Education[]);else setExperience((data||[]) as Work[])}}catch(e){if(live)setMessage(e instanceof Error?e.message:"Gagal memuatkan rekod")}})();return()=>{live=false}},[client,kind,table,userId]);
  async function run(fn:()=>Promise<void>){setBusy(true);setMessage("");try{await fn();await load();setMessage("Rekod berjaya disimpan.")}catch(e){setMessage(e instanceof Error?e.message:"Ralat simpanan")}finally{setBusy(false)}}
  async function save(e:FormEvent){e.preventDefault();await run(async()=>{
-  const payload=kind==="education"?{user_id:userId,institution:edu.institution.trim(),qualification:edu.qualification.trim(),field_of_study:edu.field_of_study.trim(),start_year:edu.start_year?Number(edu.start_year):null,end_year:edu.end_year?Number(edu.end_year):null,description:edu.description.trim()}:{user_id:userId,company:work.company.trim(),role:work.role.trim(),start_date:work.start_date||null,end_date:work.end_date||null,description:work.description.trim()};
-  const {error}=await client.from(table).insert(payload);if(error)throw error;
+  if(kind==="education"){
+    const {error}=await client.from("education").insert({user_id:userId,institution:edu.institution.trim(),qualification:edu.qualification.trim(),field_of_study:edu.field_of_study.trim(),start_year:edu.start_year?Number(edu.start_year):null,end_year:edu.end_year?Number(edu.end_year):null,description:edu.description.trim()});
+    if(error)throw error;
+  }else{
+    const {error}=await client.from("work_experience").insert({user_id:userId,company:work.company.trim(),role:work.role.trim(),start_date:work.start_date||null,end_date:work.end_date||null,description:work.description.trim()});
+    if(error)throw error;
+  }
   if(kind==="education")setEdu(initialEdu);else setWork(initialWork);
  })}
  async function remove(id:string){if(!confirm("Padam rekod ini?"))return;await run(async()=>{const {error}=await client.from(table).delete().eq("id",id).eq("user_id",userId);if(error)throw error})}
