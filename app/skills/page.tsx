@@ -1,5 +1,1 @@
-const skills = [["Web Development",78],["Cloud Computing",65],["Database",62],["Communication",55]] as const;
-export default function Skills() { return <><span className="eyebrow">Skills Intelligence</span><h1 className="heading">AI Skills Analysis</h1>
-<p className="lead">Simulasi penilaian kendiri dan jurang kemahiran. Bukan AI sebenar atau penilaian rasmi.</p>
-<div className="panel section"><h2>Kompetensi (demo)</h2>{skills.map(([name,score])=><div className="item" key={name}><div style={{display:"flex",justifyContent:"space-between"}}><strong>{name}</strong><span>{score}%</span></div><div className="track"><div className="bar" style={{width:`${score}%`}} /></div></div>)}</div>
-<div className="panel section"><h2>Cadangan seterusnya</h2><p className="muted">Bina projek praktikal dan dapatkan maklum balas mentor untuk mengesahkan kebolehan. Ini ialah cadangan contoh.</p></div></>; }
+import Workspace from "@/components/workspace";export default function Page(){return <Workspace/>}
