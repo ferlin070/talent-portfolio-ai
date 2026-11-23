@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, BriefcaseBusiness, Search, Target, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, Search, Target, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import HistoryEditor from "@/components/history-editor";
 
