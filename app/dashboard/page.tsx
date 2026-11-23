@@ -1,0 +1,5 @@
+import Link from "next/link";
+export default function Dashboard() { return <><span className="eyebrow">Overview</span><h1 className="heading">Dashboard Peribadi</h1>
+<p className="lead">Paparan contoh untuk pelajar atau pekerja. Semua nombor ialah data demonstrasi.</p>
+<div className="grid">{[["85%","Profil lengkap"],["12","Sijil & kelayakan"],["8","Projek direkodkan"]].map(([n,t])=><div className="panel" key={t}><span className="eyebrow">{t}</span><div className="metric">{n}</div><span className="pill">Demo</span></div>)}</div>
+<section className="panel section"><h2>Quick actions</h2><div style={{display:"flex",gap:12,flexWrap:"wrap"}}><Link className="button" href="/portfolio">Lihat portfolio</Link><Link className="button secondary" href="/certificates">Sijil saya</Link><Link className="button secondary" href="/skills">Analisis kemahiran</Link></div></section></>; }
