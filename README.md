@@ -1,50 +1,46 @@
-# Talent Portfolio AI
+# Talentfolio AI
 
-Premium SaaS starter for student and employee portfolios, certificate evidence, career growth and skills development. No company branding.
+A premium digital portfolio workspace for students and employees. Inspired by the supplied five-screen HTML design, now connected to a dedicated Supabase Free project.
 
-> **Current stage:** Functional UI preview only. Auth, certificate uploads, portfolio publishing and real AI assessments are not implemented yet.
+**Live demo:** https://talent-portfolio-ai.vercel.app
 
-## Stack
+## Implemented modules
+- Public SaaS landing page
+- User registration, login and reset password UI with Supabase Auth
+- Personal dashboard with real account statistics
+- Profile editing for students and workers
+- Projects with opt-in public showcase
+- Private certificate vault with file upload, signed URL access and deletion
+- Skills self-assessment and **rule-based** career gap guidance
+- Portfolio builder with Modern / Minimal / Tech themes and public publish/unpublish
 
-- Next.js App Router, React, TypeScript, Tailwind CSS
-- Supabase Auth, PostgreSQL, Storage (database migration prepared, integration pending)
-- Vercel deployment (respect plan terms: Hobby is non-commercial)
+## Tech stack
+Next.js App Router, React, TypeScript, Tailwind CSS, Lucide, Supabase Auth/PostgreSQL/Storage, Vercel.
 
-## Quick start
-
+## Setup
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
+Configure:
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
+```
+**Never commit service_role keys or .env.local.** On fresh Supabase installations, apply migrations from `supabase/migrations` in chronological order.
 
-Open http://localhost:3000.
+Configure Supabase Auth Site URL and Redirect URLs for the deployed domain, and email SMTP for a public launch.
 
-## Supabase setup
+## Deployment and limitations
+See [production readiness checklist](docs/PRODUCTION_CHECKLIST.md).
 
-1. Create a Supabase project.
-2. Copy `.env.example` to `.env.local`; fill the public Supabase URL and anon key only.
-3. Apply `supabase/migrations/0001_initial.sql` with the Supabase SQL editor.
-4. Implement authenticated CRUD and private Storage policies before enabling user data.
+The current Vercel team is on a Hobby plan: its terms limit usage to non-commercial projects. Upgrade or choose commercially permitted hosting **before commercial launch**.
 
-**Never commit secrets or service_role keys.**
+Current Skills Analysis is based on user self-assessment and illustrative role targets; it is **not** a generative AI evaluation or third-party credential verification. Production authentication and multi-user security still need real-user end-to-end testing.
 
-## Current demo pages
+## Privacy
+User data and certificate files are private via RLS. Public portfolios are generated from explicitly selected fields in a separate publication snapshot. Only verified issuers may mark uploaded credentials verified (issuer verification is not implemented).
 
-- `/` — Marketing landing page
-- `/dashboard` — User overview
-- `/portfolio` — Portfolio preview
-- `/certificates` — Certificate Vault preview
-- `/skills` — Skills Analysis preview
-
-## Roadmap
-
-1. Supabase authentication, onboarding, editable personal profile.
-2. Project CRUD and encrypted-in-transit private certificate storage.
-3. Portfolio templates, visibility controls, CV PDF export.
-4. Evidence-based career gap analysis, growth plan and QA.
-
-See [workflow documentation](docs/WORKFLOW.md).
-
-## Privacy and verification
-
-Data is private by default with owner-scoped RLS policies. A public portfolio must use deliberately disclosed profile fields. Certificate files need private buckets and authorized, short-lived downloads. User-uploaded evidence must not be labeled verified until issuer confirmation.
+## Development
+See [workflow](docs/WORKFLOW.md) and [production checklist](docs/PRODUCTION_CHECKLIST.md).
