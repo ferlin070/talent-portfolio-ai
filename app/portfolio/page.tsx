@@ -1,5 +1,1 @@
-export default function Portfolio() { return <><span className="eyebrow">Portfolio Builder</span><h1 className="heading">Portfolio Profesional</h1>
-<p className="lead">Konsep portfolio daripada profil. Penyuntingan dan penerbitan sebenar akan dilaksanakan dalam sprint seterusnya.</p>
-<section className="hero"><span className="pill">Portfolio Preview</span><h2 style={{fontSize:38,marginBottom:5}}>Ahmad Hakimi</h2>
-<p className="lead">Pelajar Teknologi Maklumat • Aspiring Full Stack Developer</p><p>Web Development · UI Design · Cloud Fundamentals</p></section>
-<section className="panel section"><h2>Projek Pilihan</h2>{["Sistem Tempahan Online","Dashboard Pengurusan Projek","Website Portfolio Peribadi"].map(t=><div className="item" key={t}><strong>{t}</strong><div className="muted">Projek demonstrasi</div></div>)}</section></>; }
+import Workspace from "@/components/workspace";export default function Page(){return <Workspace/>}
