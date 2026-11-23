@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, BriefcaseBusiness, Code2, Globe2, GraduationCap, MapPin, Sparkles, UserRound } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, Code2, GraduationCap, MapPin, Sparkles, UserRound } from "lucide-react";
 type Project={id:string;title:string;description:string;url:string|null;is_public:boolean};
 type Edu={id:string;institution:string;qualification:string;field_of_study:string;start_year:number|null;end_year:number|null};
 type Experience={id:string;company:string;role:string;start_date:string|null;end_date:string|null};
