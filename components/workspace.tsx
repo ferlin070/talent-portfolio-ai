@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, BriefcaseBusiness, Search, Target, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, BriefcaseBusiness, Search, Target, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
+import HistoryEditor from "@/components/history-editor";
 
 type Profile = { display_name:string; user_type:"student"|"worker"; headline:string; bio:string; website:string; location:string; is_public:boolean };
 type Project = { id:string; title:string; description:string; url:string|null; is_public:boolean; created_at:string };
@@ -12,7 +13,7 @@ type Certificate = {id:string;name:string;issuer:string|null;issued_on:string|nu
 type Skill = {id:string;name:string;self_rating:number|null;created_at:string};
 type Publication = {slug:string;template:"modern"|"minimal"|"tech";published:boolean;updated_at:string};
 const empty:Profile={display_name:"",user_type:"student",headline:"",bio:"",website:"",location:"",is_public:false};
-const paths=[["/dashboard","Dashboard",LayoutDashboard],["/portfolio","Portfolio Builder",Globe2],["/projects","Projects",FolderKanban],["/resume","Resume Builder",FileUser],["/certificates","Certificate Vault",Award],["/skills","Skills Analysis",ChartNoAxesCombined],["/profile","My Profile",UserRound]] as const;
+const paths=[["/dashboard","Dashboard",LayoutDashboard],["/portfolio","Portfolio Builder",Globe2],["/projects","Projects",FolderKanban],["/education","Education",GraduationCap],["/experience","Work Experience",BriefcaseBusiness],["/resume","Resume Builder",FileUser],["/certificates","Certificate Vault",Award],["/skills","Skills Analysis",ChartNoAxesCombined],["/profile","My Profile",UserRound]] as const;
 const goals=[{value:"fullstack",label:"Full Stack Developer",targets:[5,4,4,4,4]},{value:"cloud",label:"Cloud Engineer",targets:[3,5,4,4,4]},{value:"data",label:"Data Analyst",targets:[3,3,5,4,4]}];
 const categories=["Web Development","Cloud Computing","Database","Communication","Documentation"];
 const nameSlug=(s:string)=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
@@ -20,7 +21,7 @@ const onlyHttp=(v:string)=>{try{const u=new URL(v);return ["https:","http:"].inc
 const errText=(e:unknown)=>e instanceof Error?e.message:"Ralat tidak dijangka. Cuba lagi.";
 const dateText=(s?:string|null)=>s?new Date(s).toLocaleDateString("ms-MY",{year:"numeric",month:"short",day:"numeric"}):"Tiada tarikh";
 export default function Workspace(){
- const pathname=usePathname(), section=pathname==="/certificates"?"certificates":pathname==="/skills"?"skills":pathname==="/portfolio"?"portfolio":pathname==="/projects"?"projects":pathname==="/profile"?"profile":"dashboard";
+ const pathname=usePathname(), section=pathname==="/education"?"education":pathname==="/experience"?"experience":pathname==="/certificates"?"certificates":pathname==="/skills"?"skills":pathname==="/portfolio"?"portfolio":pathname==="/projects"?"projects":pathname==="/profile"?"profile":"dashboard";
  const client=useMemo(()=>getSupabaseClient(),[]);
  const [userId,setUserId]=useState<string|null>(null),[email,setEmail]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[mobile,setMobile]=useState(false),[notice,setNotice]=useState("");
  const [profile,setProfile]=useState<Profile>(empty),[projects,setProjects]=useState<Project[]>([]),[certs,setCerts]=useState<Certificate[]>([]),[skills,setSkills]=useState<Skill[]>([]),[publication,setPublication]=useState<Publication|null>(null);
@@ -48,7 +49,7 @@ export default function Workspace(){
  const measured=categories.map((label)=>({label,score:skills.find(x=>x.name.toLowerCase()===label.toLowerCase())?.self_rating||0}));
  const desired=goals.find(x=>x.value===role)||goals[0];
  const gaps=measured.map((x,i)=>({...x,target:desired.targets[i],gap:desired.targets[i]-x.score})).sort((a,b)=>b.gap-a.gap);
- const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile"}[section];
+ const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",education:"Education",experience:"Work Experience",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile"}[section];
  const username=profile.display_name||email?.split("@")[0]||"Pengguna";
  const protectedNotice=<div className="tf-notice" role="status">{notice}<button onClick={()=>setNotice("")} aria-label="Tutup mesej"><X size={14}/></button></div>;
  function emptyBox(title:string,desc:string){return <div className="tf-empty"><div className="tf-emptyicon"><BookOpen size={26}/></div><b>{title}</b><p>{desc}</p></div>}
@@ -69,6 +70,7 @@ export default function Workspace(){
  <div className="tf-insight"><Sparkles size={17}/><span><b>Growth insight</b><br/>Jadikan kemahiran anda lebih meyakinkan dengan menambah projek dan bukti pencapaian.</span></div></section>
  <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Recent Achievements</h3><p>Perjalanan profesional anda</p></div><span className="tf-pill green">LIVE DATA</span></div>
  {[...certs.slice(0,2).map(x=>({name:x.name,type:"Certificate",date:x.created_at})),...projects.slice(0,2).map(x=>({name:x.title,type:"Project",date:x.created_at}))].sort((a,b)=>b.date.localeCompare(a.date)).length===0?emptyBox("Belum ada aktiviti","Sijil dan projek terbaru akan muncul di sini."): [...certs.slice(0,2).map(x=>({name:x.name,type:"Certificate",date:x.created_at})),...projects.slice(0,2).map(x=>({name:x.title,type:"Project",date:x.created_at}))].sort((a,b)=>b.date.localeCompare(a.date)).map((e,i)=><div className="tf-event" key={i}><div className="tf-event-icon">{e.type==="Project"?<BriefcaseBusiness size={18}/>:<Award size={18}/>}</div><div><b>{e.type} added</b><p>{e.name} · {dateText(e.date)}</p></div></div>)}</section></div></>}
+ {(section==="education"||section==="experience")&&<HistoryEditor kind={section} userId={userId}/>}
  {section==="profile"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL IDENTITY</div><h1>My Profile</h1><p>Maklumat ini digunakan untuk portfolio dan analisis kemahiran anda.</p></div><span className="tf-pill"><ShieldCheck size={13}/> Private by default</span></div>
  <form className="tf-card tf-section tf-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const {error}=await client.from("profiles").upsert({user_id:userId,...profile,is_public:false,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error)throw error;setNotice("Profil disimpan.")})}}>
  <div className="tf-card-head"><h3>Personal Information</h3><span className="tf-pill">ACCOUNT</span></div><div className="tf-formgrid"><label>Nama penuh<input required value={profile.display_name} onChange={e=>setProfile({...profile,display_name:e.target.value})} maxLength={100}/></label><label>Jenis akaun<select value={profile.user_type} onChange={e=>setProfile({...profile,user_type:e.target.value as Profile["user_type"]})}><option value="student">Pelajar</option><option value="worker">Pekerja</option></select></label><label>Headline profesional<input value={profile.headline} onChange={e=>setProfile({...profile,headline:e.target.value})} maxLength={160} placeholder="Contoh: Junior Software Developer"/></label><label>Lokasi (pilihan)<input value={profile.location} onChange={e=>setProfile({...profile,location:e.target.value})} maxLength={100}/></label><label>Website (pilihan)<input value={profile.website} onChange={e=>setProfile({...profile,website:e.target.value})} placeholder="https://..." maxLength={300}/></label><label className="tf-span2">Tentang saya<textarea rows={5} value={profile.bio} onChange={e=>setProfile({...profile,bio:e.target.value})} maxLength={3000} placeholder="Ceritakan latar belakang, pengalaman dan matlamat anda..."/></label></div>
