@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, Settings2, BriefcaseBusiness, GraduationCap, Search, Copy, Target, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, BriefcaseBusiness, Search, Target, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 
 type Profile = { display_name:string; user_type:"student"|"worker"; headline:string; bio:string; website:string; location:string; is_public:boolean };
@@ -27,7 +27,7 @@ export default function Workspace(){
  const [theme,setTheme]=useState<"modern"|"minimal"|"tech">("modern"),[slug,setSlug]=useState(""),[role,setRole]=useState("fullstack"),[filter,setFilter]=useState("all"),[q,setQ]=useState("");
  const [certForm,setCertForm]=useState({name:"",issuer:"",issued_on:""}),[certFile,setCertFile]=useState<File|null>(null);
  const [projectForm,setProjectForm]=useState({title:"",description:"",url:"",is_public:true}),[skillForm,setSkillForm]=useState({name:"",self_rating:3});
- async function refresh(uid:string){
+ const refresh=useCallback(async (uid:string)=>{
    const [p,j,c,s,pub]=await Promise.all([
     client.from("profiles").select("display_name,user_type,headline,bio,website,location,is_public").eq("user_id",uid).maybeSingle(),
     client.from("projects").select("id,title,description,url,is_public,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
@@ -39,10 +39,10 @@ export default function Workspace(){
    setProfile({...empty,...p.data} as Profile);setProjects((j.data||[]) as Project[]);setCerts((c.data||[]) as Certificate[]);setSkills((s.data||[]) as Skill[]);
    setPublication(pub.data as Publication|null);
    setTheme((pub.data?.template||"modern") as "modern"|"minimal"|"tech");setSlug(pub.data?.slug||nameSlug(p.data?.display_name||""));
- }
+ },[client]);
  useEffect(()=>{let active=true;(async()=>{try{const {data,error}=await client.auth.getUser();if(error)throw error;if(!active)return;
   if(data.user){setUserId(data.user.id);setEmail(data.user.email||"");await refresh(data.user.id);}
- }catch(e){if(active)setNotice(errText(e));}finally{if(active)setLoading(false)}})();return()=>{active=false};},[client]);
+ }catch(e){if(active)setNotice(errText(e));}finally{if(active)setLoading(false)}})();return()=>{active=false};},[client,refresh]);
  async function run(action:()=>Promise<void>){setBusy(true);setNotice("");try{await action();if(userId)await refresh(userId)}catch(e){setNotice(errText(e))}finally{setBusy(false)}}
  const completion=[!!profile.display_name,!!profile.headline,!!profile.bio,projects.length>0,skills.length>0,certs.length>0].filter(Boolean).length/6*100;
  const measured=categories.map((label)=>({label,score:skills.find(x=>x.name.toLowerCase()===label.toLowerCase())?.self_rating||0}));
