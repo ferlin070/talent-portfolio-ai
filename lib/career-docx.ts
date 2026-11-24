@@ -45,7 +45,7 @@ async function partnerPng(asset:string):Promise<Uint8Array>{
  const response=await fetch(asset,{cache:"force-cache"});
  if(!response.ok)throw new Error("Logo sokongan projek tidak dapat dimuatkan untuk eksport Word.");
  const svg=await response.text();
- const embedded=svg.match(/href="data:image\\/webp;base64,([^"]+)"/);
+ const embedded=svg.match(/href="data:image\/webp;base64,([^"]+)"/);
  if(!embedded)throw new Error("Fail logo sokongan projek tidak sah.");
  const raw=atob(embedded[1]);
  const bytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
