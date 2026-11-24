@@ -4,9 +4,9 @@ export const SUPPORT_ACKNOWLEDGEMENT="Talentfolio AI dibangunkan dengan sokongan
 export const SUPPORT_LABEL="Sokongan pembangunan projek";
 export function SupportLogos({compact=false}:{compact?:boolean}){
  return <div className={`tf-support-logos ${compact?"tf-support-logos-compact":""}`} aria-label="Logo TVETMARA Besut dan DFK Incubator">
-  <div className="tf-support-logo tf-support-logo-tvet"><img src="/partners/tvetmara-besut.svg" alt="TVETMARA Besut" width={260} height={60} loading="lazy"/></div>
+  <div className="tf-support-logo tf-support-logo-tvet"><img src="/partners/tvetmara-besut.svg" alt="TVETMARA Besut" width={260} height={60} loading="eager"/></div>
   <span className="tf-support-logo-divider" aria-hidden="true"/>
-  <div className="tf-support-logo tf-support-logo-dfk"><img src="/partners/dfk-incubator.svg" alt="DFK Incubator" width={170} height={100} loading="lazy"/></div>
+  <div className="tf-support-logo tf-support-logo-dfk"><img src="/partners/dfk-incubator.svg" alt="DFK Incubator" width={170} height={100} loading="eager"/></div>
  </div>;
 }
 export default function SupportPartners({variant="landing"}:{variant?:Variant}){
