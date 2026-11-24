@@ -14,6 +14,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
  const [busy,setBusy]=useState(false),[result,setResult]=useState(""),[error,setError]=useState("");
  const [attempts,setAttempts]=useState<Attempt[]>([]),[usedSlot,setUsedSlot]=useState<number|null>(null),[copied,setCopied]=useState(false);
  const [roundRobin,setRoundRobin]=useState(0);
+ const [testing,setTesting]=useState(false),[testMessage,setTestMessage]=useState("");
  const valid=keys.map(k=>k.secret.trim()).filter(s=>s.length>=15);
  const analysisPrompt=`Anda ialah penasihat pembangunan kerjaya di Malaysia. Jawatan sasaran saya: ${role}. Penilaian kemahiran berikut adalah penilaian kendiri sahaja:\n${skills.map(s=>`• ${s.name} — ${s.self_rating??"Belum dinilai"}/5`).join("\n")}\n\nBuat ringkasan kekuatan, matriks jurang kemahiran, roadmap 30/60/90 hari, cadangan projek bukti kerja dan kursus. Jangan reka pengalaman atau sijil; tanya jika data tidak mencukupi. Bahasa Melayu Malaysia.`;
  const change=(id:number,field:"secret"|"label"|"visible",value:string|boolean)=>setKeys(prev=>prev.map(x=>x.id===id?{...x,[field]:value}:x));
@@ -38,6 +39,22 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
    setRoundRobin(v=>(v+slot)%valid.length);
   }catch(e){setError(e instanceof Error?e.message:"Gagal menghubungi Gemini.");}finally{setBusy(false)}
  }
+ async function testConnection(){
+  const first=keys.find(k=>k.secret.trim().length>=15);
+  if(!first)return;
+  setTesting(true);setTestMessage("");
+  try{
+   const {data:{session}}=await db.auth.getSession();
+   if(!session)throw new Error("Sila log masuk semula.");
+   const response=await fetch("/api/skills/test-connection",{method:"POST",cache:"no-store",
+    headers:{"content-type":"application/json",Authorization:`Bearer ${session.access_token}`},
+    body:JSON.stringify({apiKey:first.secret.trim(),model})});
+   const data=await response.json() as {message?:string;error?:string;seconds?:number;httpStatus?:number};
+   setTestMessage(response.ok?`✓ ${data.message||"Berjaya"} (${data.seconds??0}s)`:
+    `✕ ${data.error||"Ujian tidak berjaya."} ${data.httpStatus?"HTTP "+data.httpStatus:""}`);
+  }catch(e){setTestMessage(e instanceof Error?e.message:"Ujian sambungan gagal.");}
+  finally{setTesting(false)}
+ }
  async function copy(text:string){try{await navigator.clipboard.writeText(text);setCopied(true);}catch{setError("Gagal menyalin ke clipboard. Sila semak kebenaran browser.");}}
  return <section className="tf-card tf-section tf-ai-panel">
   <div className="tf-card-head"><div><h3><BrainCircuit size={21}/> Gemini Skills Intelligence</h3><p>Analisis kerjaya menggunakan API Gemini anda sendiri, berdasarkan rekod dalam akaun Talentfolio AI.</p></div><span className="tf-pill"><KeyRound size={13}/> Bring Your Own Key</span></div>
@@ -53,7 +70,8 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
   <div className="tf-gemini-settings"><div><h4>2. Pilihan model & sasaran</h4><p>Jawatan sasaran: <strong>{role}</strong></p></div><label>Model Gemini<select value={model} onChange={e=>setModel(e.target.value)} disabled={busy}>{MODELS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select></label></div>
   <div className="tf-gemini-quota"><AlertTriangle size={18}/><p><strong>Kuota tidak semestinya bertambah dengan banyak key.</strong> Google menetapkan kebanyakan had penggunaan mengikut projek Google Cloud, bukan setiap key. Jika semua key daripada projek sama, bertukar key mungkin tidak menyelesaikan had kuota. Pastikan penggunaan setiap key mematuhi polisi Google dan tetapan billing anda.</p></div>
   <label className="tf-ai-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> Saya faham API key saya akan dihantar ke pelayan Talentfolio AI untuk panggilan Gemini, dan data kemahiran, projek, pendidikan, pengalaman serta nama sijil saya akan dihantar kepada Google untuk dianalisis. Saya bersetuju meneruskan.</label>
-  <div className="tf-gemini-run"><button className="tf-btn" type="button" disabled={busy||!consent||valid.length===0||skills.length===0} onClick={()=>void analyze()}><Sparkles size={16}/>{busy?"Gemini sedang menganalisis…":"Generate Skills Analysis (Gemini)"}</button><span>{!valid.length?"Masukkan sekurang-kurangnya 1 API key.":!consent?"Tandakan persetujuan sebelum menjana analisis.":"Sedia menjana analisis berdasarkan profil anda."}</span></div>
+  <div className="tf-gemini-run"><button type="button" className="tf-btn tf-btn-outline" disabled={busy||testing||valid.length===0} onClick={()=>void testConnection()}><KeyRound size={15}/>{testing?"Menguji sambungan...":"Uji Sambungan Gemini"}</button><button className="tf-btn" type="button" disabled={busy||!consent||valid.length===0||skills.length===0} onClick={()=>void analyze()}><Sparkles size={16}/>{busy?"Gemini sedang menganalisis…":"Generate Skills Analysis (Gemini)"}</button><span>{!valid.length?"Masukkan sekurang-kurangnya 1 API key.":!consent?"Tandakan persetujuan sebelum menjana analisis.":"Sedia menjana analisis berdasarkan profil anda."}</span></div>
+  {testMessage&&<p role="status" className="tf-hint" style={{marginBottom:15}}>{testMessage}</p>}
   {error&&<div className="tf-ai-error" role="alert">{error}{!!attempts.length&&<ul>{attempts.map(a=><li key={a.slot}>Percubaan key #{a.slot}{a.httpStatus?` · HTTP ${a.httpStatus}`:""}: {a.status}</li>)}</ul>}</div>}
   {result&&<div className="tf-ai-result" role="status"><div className="tf-form-actions"><strong><CheckCircle2 size={16}/> Laporan Analisis Gemini · Key #{usedSlot??"—"}</strong><button className="tf-btn tf-btn-outline" onClick={()=>void copy(result)}><Copy size={14}/> Copy Report</button></div>{attempts.length>0&&<p className="tf-hint">Key sebelumnya tidak berjaya: {attempts.map(a=>`#${a.slot} (${a.status})`).join(", ")}</p>}<div className="tf-ai-content">{result}</div></div>}
   <div className="tf-gemini-fallback"><div><strong>Tiada API key? Gunakan AI pilihan anda.</strong><p>Anda masih boleh salin prompt analisis profesional dan tampal dalam ChatGPT, Gemini atau Claude tanpa sambungan API pada website.</p></div><button className="tf-btn tf-btn-outline" type="button" onClick={()=>void copy(analysisPrompt)}><Copy size={14}/>{copied?"Disalin":"Salin Prompt Analisis"}</button><Link href="/prompt-generator">Buka Prompt Generator</Link></div>
