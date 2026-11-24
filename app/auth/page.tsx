@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import SupportPartners from "@/components/support-partners";
 import { useEffect,useMemo,useState,type FormEvent } from "react";
 import { Award, ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
@@ -34,7 +35,7 @@ export default function AuthPage(){
   finally{setBusy(false);}
  }
  return <main className="tf-auth-page"><div className="tf-auth-left"><Link href="/" className="tf-brand" style={{padding:0}}><span className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></span> Talentfolio AI</Link>
- <div><span className="tf-auth-badge"><Sparkles size={14}/> YOUR SKILLS DESERVE TO BE SEEN</span><h1>Your story.<br/>Your skills.<br/><em>Your future.</em></h1><p>One beautiful space to showcase your achievements and build a professional identity that keeps growing.</p><div className="tf-auth-points"><span><Award size={17}/> Professional Portfolio</span><span><ShieldCheck size={17}/> Private Certificate Vault</span><span><Sparkles size={17}/> Career Growth Insights</span></div></div><small>© 2026 Talentfolio AI · Privacy-first workspace</small></div>
+ <div><span className="tf-auth-badge"><Sparkles size={14}/> YOUR SKILLS DESERVE TO BE SEEN</span><h1>Your story.<br/>Your skills.<br/><em>Your future.</em></h1><p>One beautiful space to showcase your achievements and build a professional identity that keeps growing.</p><div className="tf-auth-points"><span><Award size={17}/> Professional Portfolio</span><span><ShieldCheck size={17}/> Private Certificate Vault</span><span><Sparkles size={17}/> Career Growth Insights</span></div></div><div className="tf-auth-bottom"><SupportPartners variant="auth"/><small>© {new Date().getFullYear()} Talentfolio AI · Privacy-first workspace</small></div></div>
  <div className="tf-auth-right"><div className="tf-auth-card"><div className="tf-auth-mobilebrand"><span className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></span> Talentfolio AI</div><div className="tf-eyebrow">PERSONAL WORKSPACE</div><h2>{title}</h2><p className="tf-auth-sub">{mode==="signup"?"Cipta akaun percuma untuk mula membina profil profesional.":mode==="login"?"Sign in to continue building your professional future.":mode==="reset"?"Kami akan hantarkan pautan set semula ke e-mel anda.":"Masukkan kata laluan baru untuk akaun anda."}</p>
  <form className="tf-form" onSubmit={submit}>
  {mode!=="newpassword"&&<label>E-mel address<div className="tf-auth-input"><Mail size={17}/><input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></div></label>}
@@ -44,5 +45,5 @@ export default function AuthPage(){
  {message&&<p role="status" className="tf-auth-success"><CheckCircle2 size={16}/>{message}</p>}{error&&<p role="alert" className="tf-auth-error">{error}</p>}
  </form>
  <div className="tf-auth-switch">{mode==="login"?<>New to Talentfolio? <button onClick={()=>{setMode("signup");setError("");setMessage("")}}>Create an account</button></>:<>Already have an account? <button onClick={()=>{setMode("login");setError("");setMessage("")}}>Sign in</button></>}</div>
- <p className="tf-auth-privacy"><ShieldCheck size={15}/> Your data stays private until you choose to publish a portfolio.</p></div></div></main>;
+ <p className="tf-auth-privacy"><ShieldCheck size={15}/> Your data stays private until you choose to publish a portfolio.</p><SupportPartners variant="authMobile"/></div></div></main>;
 }
