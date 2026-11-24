@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-const MODELS=["gemini-2.5-flash","gemini-2.5-flash-lite"] as const;
+const MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite"] as const;
 const MAX_KEYS=5;
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
 const reply=(object:Record<string,unknown>,status=200)=>NextResponse.json(object,{status,headers:HEADERS});
@@ -23,7 +23,7 @@ export async function POST(request:NextRequest){
  if(body.consent!==true)return reply({error:"Persetujuan diperlukan sebelum menghantar data profil kepada Gemini."},400);
  const target=typeof body.role==="string"?body.role.trim().slice(0,100):"";
  if(!target)return reply({error:"Sila pilih jawatan sasaran."},400);
- const model=typeof body.model==="string"?body.model:"gemini-2.5-flash";
+ const model=typeof body.model==="string"?body.model:"gemini-3.8-flash";
  if(!MODELS.includes(model as typeof MODELS[number]))return reply({error:"Model Gemini yang dipilih tidak disokong."},400);
  if(!Array.isArray(body.apiKeys)||body.apiKeys.length===0||body.apiKeys.length>MAX_KEYS
    ||body.apiKeys.some(k=>typeof k!=="string"||k.length<15||k.length>250||/[\r\n\s]/.test(k)))
