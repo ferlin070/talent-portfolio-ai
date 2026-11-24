@@ -3,6 +3,7 @@ import {useMemo,useState,useEffect} from "react";
 import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,AlertTriangle,RotateCcw,CheckCircle2,LockKeyhole,Save,Unlock,ShieldOff} from "lucide-react";
 import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
+import CareerReport from "@/components/career-report";
 import {encryptVault,decryptVault,vaultStorageKey,type VaultEnvelope} from "@/lib/gemini-key-vault";
 type Entry={id:number;label:string;secret:string;visible:boolean};
 type Attempt={slot:number;status:string;httpStatus?:number;retryCount?:number};
@@ -120,7 +121,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
   <div className="tf-gemini-run"><button type="button" className="tf-btn tf-btn-outline" disabled={busy||testing||valid.length===0} onClick={()=>void testConnection()}><KeyRound size={15}/>{testing?"Menguji sambungan...":"Uji Sambungan Gemini"}</button><button className="tf-btn" type="button" disabled={busy||!consent||valid.length===0||skills.length===0} onClick={()=>void analyze()}><Sparkles size={16}/>{busy?"Gemini sedang menganalisis…":"Generate Skills Analysis (Gemini)"}</button><span>{!valid.length?"Masukkan sekurang-kurangnya 1 API key.":!consent?"Tandakan persetujuan sebelum menjana analisis.":"Sedia menjana analisis berdasarkan profil anda."}</span></div>
   {testMessage&&<p role="status" className="tf-hint" style={{marginBottom:15}}>{testMessage}</p>}
   {error&&<div className="tf-ai-error" role="alert">{error}{!!attempts.length&&<ul>{attempts.map(a=><li key={a.slot}>Percubaan key #{a.slot}{a.httpStatus?` · HTTP ${a.httpStatus}`:""}: {a.status}</li>)}</ul>}</div>}
-  {result&&<div className="tf-ai-result" role="status"><div className="tf-form-actions"><strong><CheckCircle2 size={16}/> Laporan Analisis Gemini · Key #{usedSlot??"—"}</strong><button className="tf-btn tf-btn-outline" onClick={()=>void copy(result)}><Copy size={14}/> Copy Report</button></div>{attempts.length>0&&<p className="tf-hint">Key sebelumnya tidak berjaya: {attempts.map(a=>`#${a.slot} (${a.status})`).join(", ")}</p>}<div className="tf-ai-content">{result}</div></div>}
+  {result&&<><CareerReport text={result} role={role} model={model} usedSlot={usedSlot} onCopy={()=>void copy(result)}/>{attempts.length>0&&<p className="tf-hint">Key sebelumnya tidak berjaya: {attempts.map(a=>`#${a.slot} (${a.status})`).join(", ")}</p>}</>}
   <div className="tf-gemini-fallback"><div><strong>Tiada API key? Gunakan AI pilihan anda.</strong><p>Anda masih boleh salin prompt analisis profesional dan tampal dalam ChatGPT, Gemini atau Claude tanpa sambungan API pada website.</p></div><button className="tf-btn tf-btn-outline" type="button" onClick={()=>void copy(analysisPrompt)}><Copy size={14}/>{copied?"Disalin":"Salin Prompt Analisis"}</button><Link href="/prompt-generator">Buka Prompt Generator</Link></div>
   <p className="tf-muted">Gemini memberikan cadangan berdasarkan data kendiri; ia tidak mengesahkan sijil atau tahap kemahiran. Setiap panggilan API tertakluk kepada kuota dan caj akaun Google anda.</p>
  </section>;
