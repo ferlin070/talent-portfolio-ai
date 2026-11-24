@@ -96,7 +96,9 @@ export async function POST(request:NextRequest){
  }
 
  const http=attempts.find(x=>x.httpStatus===503)?.httpStatus;
- const error=lastTimedOut\n   ?"Gemini tidak membalas sebelum had masa aplikasi. Key mungkin masih sah. Cuba semula, pilih model Flash-Lite, atau gunakan salinan prompt analisis."\n   :http===503
+ const error=lastTimedOut
+   ?"Gemini tidak membalas sebelum had masa aplikasi. Key mungkin masih sah. Cuba semula, pilih model Flash-Lite, atau gunakan salinan prompt analisis."
+   :http===503
    ?"Gemini memulangkan HTTP 503 (server terlalu sibuk). Ini biasanya bukan masalah API key. Cuba Gemini 3.5 Flash-Lite atau cuba semula kemudian."
    :attempts.some(x=>x.httpStatus===429)
    ?"Had kuota Gemini (HTTP 429). Semak Rate Limits dalam Google AI Studio; key lain dari projek yang sama berkongsi kuota."
