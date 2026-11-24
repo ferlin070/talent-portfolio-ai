@@ -13,6 +13,7 @@ import ExpansionThemes,{type ExpansionTheme} from "@/components/portfolio-expans
 import ProjectGalleryEditor,{type GalleryImage} from "@/components/project-gallery-editor";
 import SkillEditor from "@/components/skill-editor";
 import AIAnalysis from "@/components/ai-skills-analysis";
+import PromptGenerator from "@/components/prompt-generator";
 
 type Profile = { display_name:string; user_type:"student"|"worker"; headline:string; bio:string; website:string; location:string; avatar_url:string; is_public:boolean };
 type Project = { id:string; title:string; description:string; url:string|null; is_public:boolean; created_at:string };
@@ -31,7 +32,7 @@ const onlyHttp=(v:string)=>{try{const u=new URL(v);return ["https:","http:"].inc
 const errText=(e:unknown)=>e instanceof Error?e.message:"Ralat tidak dijangka. Cuba lagi.";
 const dateText=(s?:string|null)=>s?new Date(s).toLocaleDateString("ms-MY",{year:"numeric",month:"short",day:"numeric"}):"Tiada tarikh";
 export default function Workspace(){
- const pathname=usePathname(), section=pathname==="/education"?"education":pathname==="/experience"?"experience":pathname==="/certificates"?"certificates":pathname==="/skills"?"skills":pathname==="/portfolio"?"portfolio":pathname==="/projects"?"projects":pathname==="/profile"?"profile":"dashboard";
+ const pathname=usePathname(), section=pathname==="/education"?"education":pathname==="/experience"?"experience":pathname==="/certificates"?"certificates":pathname==="/skills"?"skills":pathname==="/portfolio"?"portfolio":pathname==="/prompt-generator"?"prompt":pathname==="/projects"?"projects":pathname==="/profile"?"profile":"dashboard";
  const client=useMemo(()=>getSupabaseClient(),[]);
  const [userId,setUserId]=useState<string|null>(null),[email,setEmail]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[mobile,setMobile]=useState(false),[notice,setNotice]=useState("");
  const [profile,setProfile]=useState<Profile>(empty),[projects,setProjects]=useState<Project[]>([]),[certs,setCerts]=useState<Certificate[]>([]),[skills,setSkills]=useState<Skill[]>([]),[education,setEducation]=useState<Education[]>([]),[workHistory,setWorkHistory]=useState<Work[]>([]),[publication,setPublication]=useState<Publication|null>(null),[projectImages,setProjectImages]=useState<GalleryImage[]>([]);
@@ -66,7 +67,7 @@ export default function Workspace(){
  const measured=categories.map((label)=>({label,score:skills.find(x=>x.name.toLowerCase()===label.toLowerCase())?.self_rating||0}));
  const desired=goals.find(x=>x.value===role)||goals[0];
  const gaps=measured.map((x,i)=>({...x,target:desired.targets[i],gap:desired.targets[i]-x.score})).sort((a,b)=>b.gap-a.gap);
- const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",education:"Education",experience:"Work Experience",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile"}[section];
+ const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",education:"Education",experience:"Work Experience",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile",prompt:"Prompt Generator"}[section];
  const username=profile.display_name||email?.split("@")[0]||"Pengguna";
  const galleryProjects=projects.map(p=>({...p,images:projectImages.filter(im=>im.project_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).map(im=>({url:client.storage.from("project-gallery").getPublicUrl(im.storage_path).data.publicUrl,caption:im.caption,is_cover:im.is_cover}))}));
  const protectedNotice=<div className="tf-notice" role="status">{notice}<button onClick={()=>setNotice("")} aria-label="Tutup mesej"><X size={14}/></button></div>;
@@ -120,6 +121,7 @@ export default function Workspace(){
  <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Target Role & Gap Analysis</h3><p>Target demonstrasi, boleh dikemas kini kemudian</p></div></div><label className="tf-form">Target Role<select value={role} onChange={e=>setRole(e.target.value)}>{goals.map(g=><option key={g.value} value={g.value}>{g.label}</option>)}</select></label>
  {gaps.map(g=><div className="tf-gap" key={g.label}><div><b>{g.label}</b><span style={{color:g.gap>0?"#ae7622":"#169d87"}}>{g.gap>0?`Gap +${g.gap}`:g.score===0?"Not assessed":"Meets target"}</span></div><div className="tf-track"><div style={{width:`${g.score*20}%`}}/></div><small>Current {g.score}/5 · Target {g.target}/5</small></div>)}</section></div>
  <div className="tf-two tf-space-top"><SkillEditor userId={userId} skills={skills} onChanged={()=>refresh(userId)}/> <section className="tf-card tf-section"><div className="tf-card-head"><h3>90-Day Growth Roadmap</h3><span className="tf-pill green">RULE-BASED</span></div>{[[30,"Build fundamentals","Pilih satu bidang paling memerlukan perhatian dan lengkapkan modul asas."],[60,"Create stronger evidence","Bina projek praktikal dan dokumentasikan keputusan serta teknologi digunakan."],[90,"Demonstrate readiness","Semak bersama mentor dan kemas kini portfolio untuk jawatan sasaran."]].map(([day,title,description])=><div className="tf-roadmap" key={day}><span>{day}</span><div><b>{title}</b><p>{description}</p></div></div>)}</section></div><p className="tf-warning"><ShieldCheck size={17}/> Ini bukan AI generatif atau pengesahan kelayakan pekerjaan. Perbandingan sasaran adalah ilustrasi dan memerlukan penilaian manusia.</p></>}
+ {section==="prompt"&&<PromptGenerator/>}
  {section==="portfolio"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL WEBSITE BUILDER</div><h1>Portfolio Builder</h1><p>Bina dan terbitkan halaman awam daripada profil dan projek pilihan anda.</p></div>{publication?.published&&<a className="tf-btn tf-btn-outline" href={`/u/${publication.slug}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> View live</a>}</div>
  <div className="tf-portfolio-controls"><div className="tf-segments">{(["modern","minimal","tech"] as const).map(t=><button type="button" key={t} className={theme===t?"active":""} onClick={()=>setTheme(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div><span className="tf-pill"><ShieldCheck size={14}/> Your content · Your portfolio</span></div>
  <div className="tf-template-gallery-heading">✦ Portfolio Gallery — 9 Professional Templates</div>
