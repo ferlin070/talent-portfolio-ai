@@ -4,6 +4,7 @@ import "./portfolio-premium.css";
 import "./portfolio-new-themes.css";
 import "./portfolio-expansion.css";
 import "./project-gallery.css";
+import "./quality-fixes.css";
 export const metadata: Metadata = {
  title: "Talentfolio AI — Portfolio, Certificates & Career Growth",
  description: "A premium digital portfolio and personal growth workspace for students and professionals.",
