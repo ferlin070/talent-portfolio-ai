@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useMemo,useState,type FormEvent} from "react";
-import {Plus,Save,Trash2,Pencil,CheckCircle2,Search} from "lucide-react";
+import {Plus,Save,Trash2,Pencil,CheckCircle2} from "lucide-react";
 import {getSupabaseClient} from "@/lib/supabase";
 type Skill={id:string;name:string;self_rating:number|null;created_at:string};
 export default function SkillEditor({userId,skills,onChanged}:{userId:string;skills:Skill[];onChanged:()=>Promise<void>}){
