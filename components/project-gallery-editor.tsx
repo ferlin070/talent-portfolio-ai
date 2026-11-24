@@ -15,9 +15,11 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
  const [images,setImages]=useState<GalleryImage[]>([]);
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState("");
  const fileInput=useRef<HTMLInputElement>(null);
+ const [previews,setPreviews]=useState<string[]>([]);
  const [files,setFiles]=useState<File[]>([]),[dragActive,setDragActive]=useState(false),[draft,setDraft]=useState({title:"",description:"",url:"",is_public:false});
  const [captions,setCaptions]=useState<Record<string,string>>({});
  const project=projects.find(x=>x.id===selected)||null;
+ useEffect(()=>{const urls=files.map(file=>URL.createObjectURL(file));setPreviews(urls);return()=>urls.forEach(URL.revokeObjectURL);},[files]);
  useEffect(()=>{if(!selected||!projects.some(x=>x.id===selected))setSelected(projects[0]?.id||"");},[projects,selected]);
  useEffect(()=>{if(project)setDraft({title:project.title,description:project.description,url:project.url||"",is_public:project.is_public});},[project?.id,project?.title,project?.description,project?.url,project?.is_public]);
  const load=useCallback(async(projectId:string)=>{
@@ -66,7 +68,7 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
    </div><div className="tf-gallery-upload">
    <div className="tf-gallery-upload-icon"><ImagePlus size={28}/></div><h4>Tambah gambar hasil kerja</h4><p>Upload beberapa gambar sekali gus · JPG/PNG/WebP · Maksimum 5 MB setiap gambar · Sehingga {MAX_PER_PROJECT} gambar.</p>
    <div className={`tf-file-dropzone ${dragActive?"drag-active":""}`} onDragOver={e=>{e.preventDefault();setDragActive(true)}} onDragLeave={e=>{e.preventDefault();setDragActive(false)}} onDrop={e=>{e.preventDefault();setDragActive(false);if(!busy)checkFiles(Array.from(e.dataTransfer.files))}}><input ref={fileInput} id="project-gallery-upload" aria-label="Pilih gambar hasil kerja" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={choose} disabled={busy} hidden/><button type="button" className="tf-file-select" disabled={busy} onClick={()=>fileInput.current?.click()}><ImagePlus size={17}/> Pilih Gambar Kerja</button><span>atau seret gambar ke kawasan ini</span></div>
-   {!!files.length&&<div className="tf-gallery-selection"><b>{files.length} gambar dipilih</b><div className="tf-file-name-list">{files.map((x,i)=><span key={i}>{x.name} · {(x.size/1024/1024).toFixed(1)} MB</span>)}</div></div>}
+   {!!files.length&&<div className="tf-gallery-selection"><b>{files.length} gambar dipilih</b><div className="tf-file-preview-list">{previews.map((src,i)=><div key={src}><img src={src} alt={files[i]?.name||"Pratonton gambar"}/><small>{files[i]?.name}</small></div>)}</div><div className="tf-file-name-list">{files.map((x,i)=><span key={i}>{x.name} · {(x.size/1024/1024).toFixed(1)} MB</span>)}</div></div>}
    <button type="button" disabled={busy||!files.length} className="tf-btn" onClick={()=>void upload()}><UploadCloud size={15}/>{busy?"Uploading...":"Upload Gambar"}</button>
    </div></div>
    <div className="tf-gallery-privacy"><Camera size={17}/><div><strong>Penting tentang privasi gambar:</strong> fail galeri disimpan dalam storan awam mengikut URL, walaupun projek belum diterbitkan. Hanya tajuk, gambar dan penerangan projek yang anda pilih akan dipaparkan dalam portfolio. Jangan muat naik gambar sulit. Selepas membuat perubahan, tekan <strong>Publish Portfolio</strong> semula.</div></div>
