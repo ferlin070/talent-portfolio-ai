@@ -1,7 +1,7 @@
 "use client";
 import {useMemo,useRef,useState} from "react";
 import {ArrowDownToLine,BookOpenCheck,BriefcaseBusiness,CheckCircle2,Copy,Download,FileText,GraduationCap,Lightbulb,Printer,Route,ShieldCheck,Sparkles,Target} from "lucide-react";
-import {parseCareerReport,cleanReportText,type ReportBlock,type ReportSection} from "@/lib/career-report";
+import {parseCareerReport,cleanReportText,CAREER_DISCLOSURE,type ReportBlock,type ReportSection} from "@/lib/career-report";
 import {downloadCareerDocx} from "@/lib/career-docx";
 import {printCareerReport} from "@/lib/career-print";
 const marks={
@@ -80,7 +80,7 @@ export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:str
     {parsed.intro.length>0&&<section className="tf-report-lead"><div className="tf-report-lead-icon"><GraduationCap size={24}/></div><div><h3>Ringkasan Eksekutif</h3><Blocks blocks={parsed.intro}/></div></section>}
     <div className="tf-report-summary-stripe"><div><span>FOKUS KERJAYA</span><strong>{role}</strong></div><div><span>BAHAGIAN ANALISIS</span><strong>{parsed.sections.length} seksyen</strong></div><div><span>SUMBER</span><strong>Profil &amp; Gemini AI</strong></div></div>
     {parsed.sections.length?parsed.sections.map(section=><ReportSectionView key={section.index} section={section}/>):<section className="tf-report-section"><h3>Analisis Lengkap</h3><p>{cleanReportText(text)}</p></section>}
-    <footer className="tf-report-footer"><div><ShieldCheck size={20}/><p><strong>Nota Ketelusan</strong> — Laporan ini ialah cadangan pembangunan kerjaya berdasarkan input profil dan penilaian kendiri. Ia bukan pengesahan sijil, tahap kompetensi atau pengalaman oleh pihak ketiga.</p></div><span>Generated with Talentfolio AI · {date}{usedSlot?` · Gemini Key #${usedSlot}`:""}</span></footer>
+    <footer className="tf-report-footer"><div><ShieldCheck size={20}/><p><strong>Nota Ketelusan</strong> — {CAREER_DISCLOSURE}</p></div><span>Generated with Talentfolio AI · {date}{usedSlot?` · Gemini Key #${usedSlot}`:""}</span></footer>
    </div>
   </article>
   <p className="tf-report-footnote"><FileText size={15}/> Eksport PDF menggunakan dialog Print browser (pilih <b>Save as PDF</b>). Eksport Word menghasilkan fail <b>.docx</b> yang boleh disunting dalam Microsoft Word.</p>
