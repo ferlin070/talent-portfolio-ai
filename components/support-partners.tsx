@@ -1,5 +1,5 @@
 import {Handshake,ShieldCheck} from "lucide-react";
-type Variant="landing"|"footer"|"dashboard"|"report";
+type Variant="landing"|"footer"|"dashboard"|"dashboardMain"|"auth"|"authMobile"|"report";
 export const SUPPORT_ACKNOWLEDGEMENT="Talentfolio AI dibangunkan dengan sokongan TVETMARA Besut di bawah program DFK Incubator.";
 export const SUPPORT_LABEL="Sokongan pembangunan projek";
 export function SupportLogos({compact=false}:{compact?:boolean}){
@@ -13,6 +13,22 @@ export default function SupportPartners({variant="landing"}:{variant?:Variant}){
  if(variant==="landing")return <section className="tf-support-banner" id="sokongan" aria-labelledby="tf-support-title">
   <div className="tf-support-copy"><span className="tf-support-eyebrow"><Handshake size={16}/> PROGRAM SOKONGAN PROJEK</span><h2 id="tf-support-title">Dibangunkan dengan sokongan ekosistem TVET</h2><p>{SUPPORT_ACKNOWLEDGEMENT}</p></div>
   <SupportLogos/>
+ </section>;
+ if(variant==="auth")return <section className="tf-support-auth" aria-label="Penghargaan sokongan pembangunan Talentfolio AI">
+  <div className="tf-support-auth-header"><Handshake size={17}/><span>DIBANGUNKAN DENGAN SOKONGAN</span></div>
+  <SupportLogos compact/>
+  <p>{SUPPORT_ACKNOWLEDGEMENT}</p>
+ </section>;
+ if(variant==="authMobile")return <aside className="tf-support-auth-mobile" aria-label="Sokongan pembangunan Talentfolio AI">
+  <span><ShieldCheck size={14}/> SOKONGAN PEMBANGUNAN PROJEK</span>
+  <SupportLogos compact/>
+  <p>TVETMARA Besut · DFK Incubator</p>
+ </aside>;
+ if(variant==="dashboardMain")return <section className="tf-support-dashboard-main" aria-labelledby="tf-main-support-heading">
+  <div className="tf-support-dashboard-main-copy"><div className="tf-support-dashboard-main-tag"><ShieldCheck size={14}/> PENGHARGAAN PEMBANGUNAN</div>
+  <h2 id="tf-main-support-heading">Membina bakat digital bersama ekosistem TVET</h2>
+  <p>{SUPPORT_ACKNOWLEDGEMENT}</p></div>
+  <SupportLogos compact/>
  </section>;
  if(variant==="footer")return <div className="tf-support-footer-logos">
   <span>DISOKONG OLEH</span><SupportLogos compact/><small>{SUPPORT_ACKNOWLEDGEMENT}</small>
