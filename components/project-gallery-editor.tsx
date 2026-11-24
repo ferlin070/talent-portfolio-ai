@@ -21,7 +21,7 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
  const project=projects.find(x=>x.id===selected)||null;
  useEffect(()=>{const urls=files.map(file=>URL.createObjectURL(file));setPreviews(urls);return()=>urls.forEach(URL.revokeObjectURL);},[files]);
  useEffect(()=>{if(!selected||!projects.some(x=>x.id===selected))setSelected(projects[0]?.id||"");},[projects,selected]);
- useEffect(()=>{if(project)setDraft({title:project.title,description:project.description,url:project.url||"",is_public:project.is_public});},[project?.id,project?.title,project?.description,project?.url,project?.is_public]);
+ useEffect(()=>{if(project)setDraft({title:project.title,description:project.description,url:project.url||"",is_public:project.is_public});},[project]);
  const load=useCallback(async(projectId:string)=>{
   if(!projectId){setImages([]);return;}
   setLoading(true);
