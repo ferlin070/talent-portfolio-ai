@@ -223,3 +223,43 @@ html.tf-dark .tf-report-footnote{color:#c0d0e8}
  body.tf-career-print-active .tf-report-summary-stripe,
  body.tf-career-print-active .tf-report-lead{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
 }
+
+
+/* Talentfolio AI — TVETMARA Besut / DFK Incubator project-support branding */
+.tf-support-banner{max-width:1180px;margin:32px auto 23px;padding:25px 29px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:24px;background:linear-gradient(115deg,#f7f8ff 5%,#fff 65%);border:1px solid #e0e5fa;border-radius:22px;box-shadow:0 16px 34px #122d6220;position:relative}
+.tf-support-banner:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#536efa,#9668ff,#57a5ea);border-radius:22px 22px 0 0}
+.tf-support-copy{min-width:0}.tf-support-eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:10px;font-weight:900;letter-spacing:1px;color:#5767c7}
+.tf-support-copy h2{color:#203451;font:800 clamp(17px,2vw,23px)/1.35 'Plus Jakarta Sans',sans-serif;margin:10px 0}
+.tf-support-copy p{font-size:12px;color:#5e6c89;line-height:1.8;margin:0}
+.tf-support-logos{display:flex;align-items:center;justify-content:center;gap:15px;min-width:0;background:#fff;border:1px solid #e6e9f3;border-radius:15px;padding:13px 16px;box-shadow:0 4px 18px #21366b0c}
+.tf-support-logo{display:flex;align-items:center;justify-content:center;min-width:0;min-height:64px}
+.tf-support-logo-tvet{flex:1.35}.tf-support-logo-dfk{flex:1}
+.tf-support-logo img{display:block;width:100%;height:auto;max-height:81px;object-fit:contain}
+.tf-support-logo-tvet img{max-width:255px}.tf-support-logo-dfk img{max-width:155px}
+.tf-support-logo-divider{display:block;flex:0 0 1px;width:1px;height:53px;background:#d7ddeb}
+.tf-support-logos-compact{gap:9px;padding:9px}
+.tf-support-logos-compact .tf-support-logo{min-height:42px}
+.tf-support-logos-compact .tf-support-logo-tvet img{max-width:160px}
+.tf-support-logos-compact .tf-support-logo-dfk img{max-width:100px}
+.tf-support-logos-compact .tf-support-logo-divider{height:38px}
+.tf-landing-footer{max-width:1180px;margin:35px auto 0;padding:28px 32px 34px;display:grid;grid-template-columns:1fr 1fr;gap:36px;background:#101c33;color:#f4f6ff;border-radius:18px 18px 0 0}
+.tf-landing-footer-brand{display:grid;align-content:start;gap:8px}.tf-landing-footer-brand strong{font:800 22px 'Plus Jakarta Sans',sans-serif}
+.tf-landing-footer-brand span{color:#aabce1;font-size:11px}.tf-landing-footer-brand p{max-width:370px;color:#c5d0e6;font-size:12px;line-height:1.7;margin:8px 0}
+.tf-landing-footer-brand small{color:#93a5c5;font-size:10px}
+.tf-support-footer-logos{display:grid;align-content:start;gap:10px;max-width:430px}
+.tf-support-footer-logos>span{color:#b9c7ea;font-size:10px;font-weight:900;letter-spacing:1.5px}
+.tf-support-footer-logos>small{font-size:10px;color:#c6d3ec;line-height:1.7}
+.tf-support-dashboard{padding:13px 11px;border:1px solid #5160a36b;border-radius:12px;background:linear-gradient(145deg,#273151,#1b2948);margin:14px 10px 20px;text-align:center}
+.tf-support-dashboard-title{display:flex;align-items:center;justify-content:center;gap:6px;font-size:8px;font-weight:900;color:#dbe5ff;letter-spacing:.7px}
+.tf-support-dashboard .tf-support-logos{margin:9px 0 7px}
+.tf-support-dashboard p{font-size:9px;color:#c0cee9;line-height:1.6;margin:0}
+.tf-report-support{margin:9px 0 17px;padding:13px 16px;background:#fff;color:#274166;border-radius:13px;border:1px solid #d7e3fb}
+.tf-report-support-label{display:flex;align-items:center;justify-content:center;gap:7px;color:#5569b7;font-size:9px;font-weight:900;letter-spacing:.7px}
+.tf-report-support .tf-support-logos{border:0;box-shadow:none;margin:7px auto;padding:3px 9px;max-width:465px}
+.tf-report-support p{text-align:center;margin:5px 0 0;color:#5b6b85;font-size:10px;line-height:1.5}
+html.tf-dark .tf-support-banner{background:linear-gradient(115deg,#182844,#23365d);border-color:#405782}
+html.tf-dark .tf-support-copy h2{color:#f0f5ff}
+html.tf-dark .tf-support-copy p{color:#c4d3ee}
+html.tf-dark .tf-support-eyebrow{color:#b9c9ff}
+@media(max-width:760px){.tf-support-banner{margin:20px 15px;padding:22px 17px;grid-template-columns:1fr;gap:15px}.tf-support-logos{gap:8px;padding:11px}.tf-support-logo-tvet img{max-width:200px}.tf-support-logo-dfk img{max-width:115px}.tf-landing-footer{margin:20px 15px 0;padding:23px;grid-template-columns:1fr;gap:22px}.tf-report-support{padding:10px 9px}.tf-report-support .tf-support-logos{padding:6px}}
+@media print{.tf-report-support{break-inside:avoid!important;page-break-inside:avoid!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}}
