@@ -4,6 +4,7 @@ import {ArrowDownToLine,BookOpenCheck,BriefcaseBusiness,CheckCircle2,Copy,Downlo
 import {parseCareerReport,cleanReportText,CAREER_DISCLOSURE,type ReportBlock,type ReportSection} from "@/lib/career-report";
 import {downloadCareerDocx} from "@/lib/career-docx";
 import {printCareerReport} from "@/lib/career-print";
+import SupportPartners from "@/components/support-partners";
 const marks={
  strength:{label:"KEKUATAN UTAMA",icon:CheckCircle2},
  gap:{label:"JURANG KEMAHIRAN",icon:Target},
@@ -74,6 +75,7 @@ export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:str
     <div className="tf-report-cover-top"><div className="tf-report-brand"><span className="tf-report-brand-mark"><Sparkles size={17}/></span> TALENTFOLIO <b>AI</b></div><span className="tf-report-cover-edition">CAREER DEVELOPMENT REPORT / {new Date().getFullYear()}</span></div>
     <div className="tf-report-cover-body"><span className="tf-report-eyebrow">PERSONALIZED CAREER INTELLIGENCE</span><h2>Skills &amp; Career<br/><em>Growth Report.</em></h2><div className="tf-report-cover-line"/><p>Analisis kemahiran, bukti pengalaman dan pelan pembangunan kerjaya berdasarkan maklumat yang disediakan oleh pemilik portfolio.</p></div>
     <div className="tf-report-cover-meta"><div><span>JAWATAN SASARAN</span><strong>{role}</strong></div><div><span>TARIKH LAPORAN</span><strong>{date}</strong></div><div><span>DIJANA DENGAN</span><strong>{model||"Gemini AI"}</strong></div></div>
+    <SupportPartners variant="report"/>
    </header>
    <div className="tf-report-paper">
     <div className="tf-report-paper-kicker"><span>01 / LAPORAN PEMBANGUNAN PROFESIONAL</span><span>Talentfolio AI</span></div>
