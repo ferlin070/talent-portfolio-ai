@@ -1,8 +1,9 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useMemo,useRef,useState} from "react";
 import {ArrowDownToLine,BookOpenCheck,BriefcaseBusiness,CheckCircle2,Copy,Download,FileText,GraduationCap,Lightbulb,Printer,Route,ShieldCheck,Sparkles,Target} from "lucide-react";
 import {parseCareerReport,cleanReportText,type ReportBlock,type ReportSection} from "@/lib/career-report";
 import {downloadCareerDocx} from "@/lib/career-docx";
+import {printCareerReport} from "@/lib/career-print";
 const marks={
  strength:{label:"KEKUATAN UTAMA",icon:CheckCircle2},
  gap:{label:"JURANG KEMAHIRAN",icon:Target},
@@ -41,18 +42,23 @@ function ReportSectionView({section}:{section:ReportSection}){
 }
 export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:string;role:string;model:string;usedSlot:number|null;onCopy:()=>void}){
  const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState("");
+ const reportRef=useRef<HTMLElement>(null);
  const parsed=useMemo(()=>parseCareerReport(text),[text]);
  const date=useMemo(()=>new Intl.DateTimeFormat("ms-MY",{year:"numeric",month:"long",day:"numeric",timeZone:"Asia/Kuala_Lumpur"}).format(new Date()),[]);
+ function isComplete(){
+  return text.length>=1400 && parsed.sections.length===5 &&
+    (["strength","gap","roadmap","project","question"] as const).every(kind=>parsed.sections.some(x=>x.kind===kind&&x.blocks.length>0));
+ }
  function exportPdf(){
-  setExportError("");
-  document.body.classList.add("tf-career-print-active");
-  const cleanup=()=>document.body.classList.remove("tf-career-print-active");
-  window.addEventListener("afterprint",cleanup,{once:true});
-  requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));
-  setTimeout(cleanup,60000);
+  try{
+   setExportError("");
+   if(!isComplete())throw Error("Laporan tidak lengkap. Sila jana semula sebelum mengeksport.");
+   if(!reportRef.current)throw Error("Paparan laporan belum tersedia.");
+   printCareerReport(reportRef.current);
+  }catch(e){setExportError(e instanceof Error?e.message:"Gagal membuka cetakan PDF.");}
  }
  function exportWord(){
-  try{setExporting(true);setExportError("");downloadCareerDocx(text,{role,date,model});}
+  try{setExporting(true);setExportError("");if(!isComplete())throw Error("Laporan tidak lengkap. Sila jana semula sebelum eksport.");downloadCareerDocx(text,{role,date,model});}
   catch(e){setExportError(e instanceof Error?e.message:"Dokumen Word tidak dapat dijana.");}
   finally{setExporting(false);}
  }
@@ -63,9 +69,9 @@ export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:str
     <button type="button" className="tf-report-export-primary" disabled={exporting} onClick={exportWord}><Download size={16}/> Export Word</button>
   </div></div>
   {exportError&&<p role="alert" className="tf-ai-error">{exportError}</p>}
-  <article className="tf-career-report">
+  <article ref={reportRef} className="tf-career-report">
    <header className="tf-report-cover">
-    <div className="tf-report-cover-top"><div className="tf-report-brand"><span className="tf-report-brand-mark"><Sparkles size={17}/></span> TALENTFOLIO <b>AI</b></div><span className="tf-report-cover-edition">CAREER DEVELOPMENT REPORT / 2026</span></div>
+    <div className="tf-report-cover-top"><div className="tf-report-brand"><span className="tf-report-brand-mark"><Sparkles size={17}/></span> TALENTFOLIO <b>AI</b></div><span className="tf-report-cover-edition">CAREER DEVELOPMENT REPORT / {new Date().getFullYear()}</span></div>
     <div className="tf-report-cover-body"><span className="tf-report-eyebrow">PERSONALIZED CAREER INTELLIGENCE</span><h2>Skills &amp; Career<br/><em>Growth Report.</em></h2><div className="tf-report-cover-line"/><p>Analisis kemahiran, bukti pengalaman dan pelan pembangunan kerjaya berdasarkan maklumat yang disediakan oleh pemilik portfolio.</p></div>
     <div className="tf-report-cover-meta"><div><span>JAWATAN SASARAN</span><strong>{role}</strong></div><div><span>TARIKH LAPORAN</span><strong>{date}</strong></div><div><span>DIJANA DENGAN</span><strong>{model||"Gemini AI"}</strong></div></div>
    </header>
@@ -74,7 +80,7 @@ export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:str
     {parsed.intro.length>0&&<section className="tf-report-lead"><div className="tf-report-lead-icon"><GraduationCap size={24}/></div><div><h3>Ringkasan Eksekutif</h3><Blocks blocks={parsed.intro}/></div></section>}
     <div className="tf-report-summary-stripe"><div><span>FOKUS KERJAYA</span><strong>{role}</strong></div><div><span>BAHAGIAN ANALISIS</span><strong>{parsed.sections.length} seksyen</strong></div><div><span>SUMBER</span><strong>Profil &amp; Gemini AI</strong></div></div>
     {parsed.sections.length?parsed.sections.map(section=><ReportSectionView key={section.index} section={section}/>):<section className="tf-report-section"><h3>Analisis Lengkap</h3><p>{cleanReportText(text)}</p></section>}
-    <footer className="tf-report-footer"><div><ShieldCheck size={20}/><p><strong>Nota Ketelusan</strong> — Laporan ini ialah cadangan pembangunan kerjaya berdasarkan input profil dan penilaian kendiri. Ia bukan pengesahan sijil, tahap kompetensi atau pengalaman oleh pihak ketiga.</p></div><span>Generated with Talentfolio AI · {date}</span></footer>
+    <footer className="tf-report-footer"><div><ShieldCheck size={20}/><p><strong>Nota Ketelusan</strong> — Laporan ini ialah cadangan pembangunan kerjaya berdasarkan input profil dan penilaian kendiri. Ia bukan pengesahan sijil, tahap kompetensi atau pengalaman oleh pihak ketiga.</p></div><span>Generated with Talentfolio AI · {date}{usedSlot?` · Gemini Key #${usedSlot}`:""}</span></footer>
    </div>
   </article>
   <p className="tf-report-footnote"><FileText size={15}/> Eksport PDF menggunakan dialog Print browser (pilih <b>Save as PDF</b>). Eksport Word menghasilkan fail <b>.docx</b> yang boleh disunting dalam Microsoft Word.</p>
