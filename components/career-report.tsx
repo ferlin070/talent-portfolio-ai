@@ -58,8 +58,8 @@ export default function CareerReport({text,role,model,usedSlot,onCopy}:{text:str
    printCareerReport(reportRef.current);
   }catch(e){setExportError(e instanceof Error?e.message:"Gagal membuka cetakan PDF.");}
  }
- function exportWord(){
-  try{setExporting(true);setExportError("");if(!isComplete())throw Error("Laporan tidak lengkap. Sila jana semula sebelum eksport.");downloadCareerDocx(text,{role,date,model});}
+ async function exportWord(){
+  try{setExporting(true);setExportError("");if(!isComplete())throw Error("Laporan tidak lengkap. Sila jana semula sebelum eksport.");await downloadCareerDocx(text,{role,date,model});}
   catch(e){setExportError(e instanceof Error?e.message:"Dokumen Word tidak dapat dijana.");}
   finally{setExporting(false);}
  }
