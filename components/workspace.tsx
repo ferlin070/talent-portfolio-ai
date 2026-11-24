@@ -42,7 +42,7 @@ export default function Workspace(){
  function toggleDark(){setDark(prev=>{const next=!prev;document.documentElement.classList.toggle("tf-dark",next);localStorage.setItem("tf-dark",String(next));return next;});}
  const [theme,setTheme]=useState<PortfolioTheme>("modern"),[slug,setSlug]=useState(""),[role,setRole]=useState("fullstack"),[filter,setFilter]=useState("all"),[q,setQ]=useState("");
  const [certForm,setCertForm]=useState({name:"",issuer:"",issued_on:""}),[certFile,setCertFile]=useState<File|null>(null);
- const [projectForm,setProjectForm]=useState({title:"",description:"",url:"",is_public:true}),[skillForm,setSkillForm]=useState({name:"",self_rating:3});
+ const [projectForm,setProjectForm]=useState({title:"",description:"",url:"",is_public:true});
  const refresh=useCallback(async (uid:string)=>{
    const [p,j,c,s,pub,ed,w,gallery]=await Promise.all([
     client.from("profiles").select("display_name,user_type,headline,bio,website,location,avatar_url,is_public").eq("user_id",uid).maybeSingle(),
