@@ -4,6 +4,7 @@ import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,A
 import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
 import CareerReport from "@/components/career-report";
+import {parseCareerReport} from "@/lib/career-report";
 import {encryptVault,decryptVault,vaultStorageKey,type VaultEnvelope} from "@/lib/gemini-key-vault";
 type Entry={id:number;label:string;secret:string;visible:boolean};
 type Attempt={slot:number;status:string;httpStatus?:number;retryCount?:number};
@@ -68,10 +69,11 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
     headers:{"content-type":"application/json",Authorization:`Bearer ${session.access_token}`},
     body:JSON.stringify({role,apiKeys:ordered,model,consent:true})
    });
-   const data=await response.json() as {analysis?:string;error?:string;usedKeySlot?:number;attempts?:Attempt[];model?:string};
+   const data=await response.json() as {analysis?:string;complete?:boolean;error?:string;usedKeySlot?:number;attempts?:Attempt[];model?:string};
    setAttempts(data.attempts||[]);
    if(!response.ok)throw Error(data.error||"Gemini tidak dapat menjana analisis.");
-   setResult(data.analysis||"");
+   if(!data.complete||!data.analysis||parseCareerReport(data.analysis).sections.length!==5)throw Error("Analisis Gemini tidak lengkap dan tidak akan dieksport. Cuba jana semula.");
+   setResult(data.analysis);
    const slot=data.usedKeySlot||1;
    setUsedSlot(((roundRobin+slot-1)%valid.length)+1);
    setRoundRobin(v=>(v+slot)%valid.length);
