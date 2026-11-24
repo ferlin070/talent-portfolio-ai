@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useMemo,useState,type ChangeEvent} from "react";
+import {useCallback,useEffect,useMemo,useState,useRef,type ChangeEvent} from "react";
 import {ArrowDown,ArrowUp,Camera,Check,ImagePlus,Images,Save,Star,Trash2,UploadCloud} from "lucide-react";
 import {getSupabaseClient} from "@/lib/supabase";
 
@@ -14,7 +14,8 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
  const [selected,setSelected]=useState("");
  const [images,setImages]=useState<GalleryImage[]>([]);
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState("");
- const [files,setFiles]=useState<File[]>([]),[draft,setDraft]=useState({title:"",description:"",url:"",is_public:false});
+ const fileInput=useRef<HTMLInputElement>(null);
+ const [files,setFiles]=useState<File[]>([]),[dragActive,setDragActive]=useState(false),[draft,setDraft]=useState({title:"",description:"",url:"",is_public:false});
  const [captions,setCaptions]=useState<Record<string,string>>({});
  const project=projects.find(x=>x.id===selected)||null;
  useEffect(()=>{if(!selected||!projects.some(x=>x.id===selected))setSelected(projects[0]?.id||"");},[projects,selected]);
@@ -30,7 +31,8 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
  },[supabase,userId]);
  useEffect(()=>{void load(selected);},[load,selected]);
  async function act(fn:()=>Promise<void>){setBusy(true);setNotice("");try{await fn();await onChanged();await load(selected);}catch(e){setNotice(msg(e))}finally{setBusy(false)}}
- function choose(e:ChangeEvent<HTMLInputElement>){const added=Array.from(e.target.files||[]);setFiles(added);const bad=added.filter(x=>!valid(x));setNotice(bad.length?"Hanya JPG, PNG atau WebP maksimum 5 MB setiap gambar dibenarkan.":"");}
+ function checkFiles(added:File[]){setFiles(added);const bad=added.filter(x=>!valid(x));setNotice(bad.length?"Hanya JPG, PNG atau WebP maksimum 5 MB setiap gambar dibenarkan.":"");}
+ function choose(e:ChangeEvent<HTMLInputElement>){checkFiles(Array.from(e.target.files||[]));}
  async function upload(){if(!project||!files.length)return;await act(async()=>{
   const good=files.filter(valid);if(good.length!==files.length)throw new Error("Semak jenis dan saiz gambar.");
   if(images.length+good.length>MAX_PER_PROJECT)throw new Error(`Maksimum ${MAX_PER_PROJECT} gambar bagi setiap projek.`);
@@ -63,8 +65,8 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
    <button type="button" disabled={busy} className="tf-btn" onClick={()=>void saveDetails()}><Save size={15}/> Simpan Penerangan</button>
    </div><div className="tf-gallery-upload">
    <div className="tf-gallery-upload-icon"><ImagePlus size={28}/></div><h4>Tambah gambar hasil kerja</h4><p>Upload beberapa gambar sekali gus · JPG/PNG/WebP · Maksimum 5 MB setiap gambar · Sehingga {MAX_PER_PROJECT} gambar.</p>
-   <input id="project-gallery-upload" aria-label="Pilih gambar hasil kerja" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={choose} disabled={busy}/>
-   {!!files.length&&<p className="tf-gallery-selection">{files.length} gambar dipilih: {files.map(x=>x.name).join(", ")}</p>}
+   <div className={`tf-file-dropzone ${dragActive?"drag-active":""}`} onDragOver={e=>{e.preventDefault();setDragActive(true)}} onDragLeave={e=>{e.preventDefault();setDragActive(false)}} onDrop={e=>{e.preventDefault();setDragActive(false);if(!busy)checkFiles(Array.from(e.dataTransfer.files))}}><input ref={fileInput} id="project-gallery-upload" aria-label="Pilih gambar hasil kerja" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={choose} disabled={busy} hidden/><button type="button" className="tf-file-select" disabled={busy} onClick={()=>fileInput.current?.click()}><ImagePlus size={17}/> Pilih Gambar Kerja</button><span>atau seret gambar ke kawasan ini</span></div>
+   {!!files.length&&<div className="tf-gallery-selection"><b>{files.length} gambar dipilih</b><div className="tf-file-name-list">{files.map((x,i)=><span key={i}>{x.name} · {(x.size/1024/1024).toFixed(1)} MB</span>)}</div></div>}
    <button type="button" disabled={busy||!files.length} className="tf-btn" onClick={()=>void upload()}><UploadCloud size={15}/>{busy?"Uploading...":"Upload Gambar"}</button>
    </div></div>
    <div className="tf-gallery-privacy"><Camera size={17}/><div><strong>Penting tentang privasi gambar:</strong> fail galeri disimpan dalam storan awam mengikut URL, walaupun projek belum diterbitkan. Hanya tajuk, gambar dan penerangan projek yang anda pilih akan dipaparkan dalam portfolio. Jangan muat naik gambar sulit. Selepas membuat perubahan, tekan <strong>Publish Portfolio</strong> semula.</div></div>
