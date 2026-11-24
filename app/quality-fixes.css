@@ -97,3 +97,22 @@ html.tf-dark .tf-gemini-intro{background:#203657;color:#c4d9fa;border-color:#375
  .tf-media-browser-rule{margin-top:6px}
  .tf-project-media-poster .tf-project-media-open{padding:7px 8px;font-size:9px}
 }
+
+
+/* Optional encrypted Gemini key vault */
+.tf-gemini-vault{border:1px solid #bad2f3;background:linear-gradient(145deg,#f6faff,#edf5ff);border-radius:15px;padding:20px;margin:20px 0 25px}
+.tf-gemini-vault-title{display:flex;align-items:flex-start;gap:12px;color:#426ad3}
+.tf-gemini-vault-title>svg{flex:none;margin-top:4px}
+.tf-gemini-vault-title h4{font:800 14px 'Plus Jakarta Sans',system-ui;margin:0 0 6px;color:#243e60}
+.tf-gemini-vault-title p{font-size:11px;color:#647b9c;line-height:1.65;margin:0}
+.tf-gemini-vault-note{font-size:11px;color:#677b95;line-height:1.8;margin:14px 0}
+.tf-gemini-vault-input{display:grid;gap:7px;font-size:11px;font-weight:800;color:#425d81}
+.tf-gemini-vault-input input{padding:12px 14px;border:1px solid #cbd9ef;background:#fff;color:#283e60;border-radius:9px;font-size:12px;max-width:550px;width:100%}
+.tf-gemini-vault-input input:focus-visible{outline:3px solid #b9cbff;outline-offset:2px}
+.tf-gemini-vault-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:15px}
+.tf-gemini-vault-message{padding:10px 13px;border:1px solid #d5e4f6;background:#fff;border-radius:9px;color:#3b587e;font-size:11px;line-height:1.65;margin-top:14px}
+html.tf-dark .tf-gemini-vault{background:linear-gradient(150deg,#1c304e,#203a5b);border-color:#47618c}
+html.tf-dark .tf-gemini-vault-title h4{color:#eef5ff}
+html.tf-dark .tf-gemini-vault-title p,html.tf-dark .tf-gemini-vault-note,html.tf-dark .tf-gemini-vault-input{color:#c3d5f1}
+html.tf-dark .tf-gemini-vault-input input{background:#15263f;color:#f4f7ff;border-color:#516b8f}
+html.tf-dark .tf-gemini-vault-message{background:#203657;color:#e1edff;border-color:#536d92}
