@@ -1,3 +1,4 @@
+export const CAREER_DISCLOSURE="Laporan ini ialah cadangan pembangunan kerjaya berdasarkan input profil dan penilaian kendiri. Ia bukan pengesahan sijil, tahap kompetensi atau pengalaman oleh pihak ketiga.";
 export type ReportBlock={type:"h1"|"h2"|"h3"|"bullet"|"number"|"paragraph"|"quote";text:string};
 export type ReportSection={title:string;blocks:ReportBlock[];index:number;kind:"strength"|"gap"|"roadmap"|"project"|"question"|"general"};
 function plain(s:string){return s.replace(/\*\*(.*?)\*\*/g,"$1").replace(/__(.*?)__/g,"$1").replace(/\*([^*]+)\*/g,"$1").replace(/_([^_]+)_/g,"$1").replace(/\s+$/,"").trim()}
