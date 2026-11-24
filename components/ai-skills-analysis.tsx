@@ -6,11 +6,11 @@ import {getSupabaseClient} from "@/lib/supabase";
 type Entry={id:number;label:string;secret:string;visible:boolean};
 type Attempt={slot:number;status:string};
 const MAX_KEYS=5;
-const MODELS=[{id:"gemini-2.5-flash",label:"Gemini 2.5 Flash"},{id:"gemini-2.5-flash-lite",label:"Gemini 2.5 Flash-Lite"}];
+const MODELS=[{id:"gemini-3.8-flash",label:"Gemini 3.8 Flash"},{id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash-Lite"}];
 export default function AIAnalysis({role,skills}:{role:string;skills:{name:string;self_rating:number|null}[]}){
  const db=useMemo(()=>getSupabaseClient(),[]);
  const [keys,setKeys]=useState<Entry[]>([{id:1,label:"Gemini Key 1",secret:"",visible:false}]);
- const [model,setModel]=useState("gemini-2.5-flash"),[consent,setConsent]=useState(false);
+ const [model,setModel]=useState("gemini-3.8-flash"),[consent,setConsent]=useState(false);
  const [busy,setBusy]=useState(false),[result,setResult]=useState(""),[error,setError]=useState("");
  const [attempts,setAttempts]=useState<Attempt[]>([]),[usedSlot,setUsedSlot]=useState<number|null>(null),[copied,setCopied]=useState(false);
  const [roundRobin,setRoundRobin]=useState(0);
