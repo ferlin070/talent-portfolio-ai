@@ -1,4 +1,4 @@
-import {parseCareerReport,cleanReportText,type ReportBlock} from "@/lib/career-report";
+import {parseCareerReport,CAREER_DISCLOSURE,type ReportBlock} from "@/lib/career-report";
 export type CareerReportMeta={role:string;date:string;model?:string;name?:string};
 const xmlEsc=(s:string)=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
 function rich(text:string){
@@ -43,16 +43,17 @@ export function exportCareerDocx(report:string,meta:CareerReportMeta){
  const date=meta.date;
  const body=[
   p("TALENTFOLIO AI  /  CAREER INTELLIGENCE","Eyebrow"),
-  p("Laporan Analisis Kemahiran & Kerjaya","Title"),
+  p("Skills & Career Growth Report","Title"),
+  p("Analisis kemahiran, bukti pengalaman dan pelan pembangunan kerjaya berdasarkan maklumat yang disediakan oleh pemilik portfolio."),
   p(meta.role,"Subtitle"),
   p(`Tarikh laporan: ${date}   •   Analisis: ${meta.model||"Gemini AI"}`,"Metadata"),
-  p("RINGKASAN","Heading"),
-  ...intro.map(blockXml),
+  ...(intro.length?[p("Ringkasan Eksekutif","Heading"),...intro.map(blockXml)]:[]),
+  p(`FOKUS KERJAYA: ${meta.role}  |  BAHAGIAN ANALISIS: ${sections.length} seksyen  |  SUMBER: Profil & Gemini AI`,"Metadata"),
   ...sections.flatMap(s=>[
    p(`${String(s.index).padStart(2,"0")}   ${s.title}`,"Heading"),
    ...s.blocks.map(blockXml)
   ]),
-  p("Nota: Laporan ini ialah analisis berasaskan maklumat dan penilaian kendiri pengguna; bukan pengesahan kelayakan, pensijilan atau kompetensi.","Note")
+  p("Nota Ketelusan — "+CAREER_DISCLOSURE,"Note")
  ].join("");
  const document=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1080" w:right="1100" w:bottom="1000" w:left="1100"/></w:sectPr></w:body></w:document>`;
  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos"/><w:color w:val="28364D"/><w:sz w:val="21"/></w:rPr></w:rPrDefault></w:docDefaults>
