@@ -1,8 +1,9 @@
 "use client";
-import {useMemo,useState} from "react";
-import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,AlertTriangle,RotateCcw,CheckCircle2} from "lucide-react";
+import {useMemo,useState,useEffect} from "react";
+import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,AlertTriangle,RotateCcw,CheckCircle2,LockKeyhole,Save,Unlock,ShieldOff} from "lucide-react";
 import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
+import {encryptVault,decryptVault,vaultStorageKey,type VaultEnvelope} from "@/lib/gemini-key-vault";
 type Entry={id:number;label:string;secret:string;visible:boolean};
 type Attempt={slot:number;status:string;httpStatus?:number;retryCount?:number};
 const MAX_KEYS=5;
@@ -13,6 +14,42 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
  const [model,setModel]=useState("gemini-3.5-flash-lite"),[consent,setConsent]=useState(false);
  const [busy,setBusy]=useState(false),[result,setResult]=useState(""),[error,setError]=useState("");
  const [attempts,setAttempts]=useState<Attempt[]>([]),[usedSlot,setUsedSlot]=useState<number|null>(null),[copied,setCopied]=useState(false);
+ const [vaultOwner,setVaultOwner]=useState<string|null>(null);
+ const [vaultExists,setVaultExists]=useState(false),[vaultPassphrase,setVaultPassphrase]=useState(""),[vaultBusy,setVaultBusy]=useState(false),[vaultMessage,setVaultMessage]=useState("");
+ useEffect(()=>{let live=true;void db.auth.getUser().then(({data})=>{
+  if(!live)return;
+  const id=data.user?.id||null;setVaultOwner(id);
+  if(id){try{setVaultExists(localStorage.getItem(vaultStorageKey(id))!==null)}catch{setVaultMessage("Storan peranti tidak tersedia. Gunakan key dalam sesi sahaja.");}}
+ });return()=>{live=false}},[db]);
+ async function saveVault(){
+  if(!vaultOwner){setVaultMessage("Log masuk untuk menyimpan key secara peribadi.");return;}
+  if(vaultPassphrase.length<12){setVaultMessage("Gunakan kata laluan vault sekurang-kurangnya 12 aksara.");return;}
+  setVaultBusy(true);setVaultMessage("");
+  try{
+   const filled=keys.filter(k=>k.secret.trim()).map(k=>({label:k.label.trim()||"Gemini API Key",secret:k.secret.trim()}));
+   const encrypted=await encryptVault(vaultPassphrase,filled);
+   localStorage.setItem(vaultStorageKey(vaultOwner),JSON.stringify(encrypted));
+   setVaultExists(true);setVaultPassphrase("");setVaultMessage("✓ API key disimpan secara terenkripsi pada peranti ini. Masukkan kata laluan vault untuk membuka semula selepas refresh.");
+  }catch(e){setVaultMessage(e instanceof Error?e.message:"Tidak dapat menyimpan vault.");}
+  finally{setVaultBusy(false)}
+ }
+ async function unlockVault(){
+  if(!vaultOwner)return;
+  setVaultBusy(true);setVaultMessage("");
+  try{
+   const raw=localStorage.getItem(vaultStorageKey(vaultOwner));
+   if(!raw)throw Error("Tiada key tersimpan pada peranti ini.");
+   const restored=await decryptVault(vaultPassphrase,JSON.parse(raw) as VaultEnvelope);
+   setKeys(restored.map((x,i)=>({id:i+1,label:x.label,secret:x.secret,visible:false})));
+   setVaultPassphrase("");setVaultMessage("✓ Semua API key berjaya dibuka. Anda boleh menjalankan analisis Gemini.");
+  }catch{setVaultMessage("Tidak dapat membuka vault. Semak kata laluan, atau padam vault dan simpan key baharu.");}
+  finally{setVaultBusy(false)}
+ }
+ function deleteVault(){
+  if(!vaultOwner||!confirm("Padam semua API key tersimpan pada peranti ini? Ini tidak membatalkan key di Google AI Studio."))return;
+  try{localStorage.removeItem(vaultStorageKey(vaultOwner));setVaultExists(false);setVaultPassphrase("");setVaultMessage("Vault setempat telah dipadam. Key dalam borang masih ada sehingga refresh.");}
+  catch{setVaultMessage("Gagal memadam vault setempat.");}
+ }
  const [roundRobin,setRoundRobin]=useState(0);
  const [testing,setTesting]=useState(false),[testMessage,setTestMessage]=useState("");
  const valid=keys.map(k=>k.secret.trim()).filter(s=>s.length>=15);
@@ -58,7 +95,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
  async function copy(text:string){try{await navigator.clipboard.writeText(text);setCopied(true);}catch{setError("Gagal menyalin ke clipboard. Sila semak kebenaran browser.");}}
  return <section className="tf-card tf-section tf-ai-panel">
   <div className="tf-card-head"><div><h3><BrainCircuit size={21}/> Gemini Skills Intelligence</h3><p>Analisis kerjaya menggunakan API Gemini anda sendiri, berdasarkan rekod dalam akaun Talentfolio AI.</p></div><span className="tf-pill"><KeyRound size={13}/> Bring Your Own Key</span></div>
-  <div className="tf-gemini-intro"><ShieldCheck size={19}/><p><strong>API key milik pengguna.</strong> Anda boleh memasukkan sehingga 5 key. Key hanya disimpan dalam memori tab semasa, <strong>bukan</strong> di Supabase, GitHub atau localStorage. Ia dihantar melalui sambungan HTTPS ke server Talentfolio ketika analisis dan diteruskan ke API Gemini. Key akan hilang apabila halaman dimuat semula.</p></div>
+  <div className="tf-gemini-intro"><ShieldCheck size={19}/><p><strong>API key milik pengguna.</strong> Anda boleh memasukkan sehingga 5 key. Secara lalai, key hanya berada dalam memori tab. Anda kini boleh memilih <strong>Simpan Terenkripsi pada Peranti</strong> untuk mengekalkannya selepas refresh atau kemas kini website. Key terenkripsi disimpan dalam browser, bukan Supabase atau GitHub. Kata laluan vault tidak disimpan; anda perlu memasukkannya untuk membuka semula key. Key hanya dihantar melalui HTTPS ke backend semasa panggilan Gemini.</p></div>
   <div className="tf-gemini-heading"><h4>1. Pengurusan Gemini API Key</h4><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Dapatkan API key di Google AI Studio ↗</a></div>
   <div className="tf-gemini-key-list">{keys.map((k,i)=><div key={k.id} className="tf-gemini-key-row">
    <span className="tf-gemini-index">#{i+1}</span>
@@ -67,6 +104,16 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
    <button type="button" title="Buang key" aria-label={`Buang key ${i+1}`} disabled={keys.length===1||busy} onClick={()=>setKeys(prev=>prev.filter(x=>x.id!==k.id))}><Trash2 size={17}/></button>
   </div>)}</div>
   <div className="tf-gemini-add"><button type="button" className="tf-btn tf-btn-outline" disabled={keys.length>=MAX_KEYS||busy} onClick={()=>setKeys(prev=>[...prev,{id:Math.max(...prev.map(x=>x.id))+1,label:`Gemini Key ${prev.length+1}`,secret:"",visible:false}])}><Plus size={15}/> Tambah API Key ({keys.length}/{MAX_KEYS})</button><small>{valid.length} key telah diisi · Satu key akan digunakan untuk setiap percubaan. Key lain dicuba jika had kuota atau ralat penyedia berlaku.</small></div>
+  <div className="tf-gemini-vault">
+   <div className="tf-gemini-vault-title"><LockKeyhole size={19}/><div><h4>Simpan API Key (Terenkripsi pada Peranti)</h4><p>{vaultExists?"Vault tersimpan pada browser ini. Ia akan kekal selepas refresh/deployment.":"Belum ada key disimpan. Simpan secara pilihan supaya tidak perlu tampal semula setiap kali."}</p></div></div>
+   <p className="tf-gemini-vault-note">Key disulitkan dengan AES-GCM dan kata laluan pilihan anda. Storan ini hanya tersedia pada browser/peranti dan akaun yang sama. Jika anda memadam data browser, bertukar peranti atau terlupa kata laluan, key tidak dapat dipulihkan daripada vault. Jangan gunakan peranti awam.</p>
+   <label className="tf-gemini-vault-input">Kata laluan vault (minimum 12 aksara)<input type="password" autoComplete="new-password" minLength={12} value={vaultPassphrase} onChange={e=>setVaultPassphrase(e.target.value)} placeholder="Kata laluan khusus untuk melindungi key"/></label>
+   <div className="tf-gemini-vault-actions"><button type="button" className="tf-btn" disabled={!vaultOwner||vaultBusy||!valid.length||vaultPassphrase.length<12} onClick={()=>void saveVault()}><Save size={15}/>{vaultBusy?"Memproses...":"Simpan Key Terenkripsi"}</button>
+    {vaultExists&&<button type="button" className="tf-btn tf-btn-outline" disabled={vaultBusy||vaultPassphrase.length===0} onClick={()=>void unlockVault()}><Unlock size={15}/>Buka Key Tersimpan</button>}
+    {vaultExists&&<button type="button" className="tf-btn tf-btn-outline" disabled={vaultBusy} onClick={deleteVault}><ShieldOff size={15}/>Padam Vault</button>}
+   </div>
+   {vaultMessage&&<p role="status" className="tf-gemini-vault-message">{vaultMessage}</p>}
+  </div>
   <div className="tf-gemini-settings"><div><h4>2. Pilihan model & sasaran</h4><p>Jawatan sasaran: <strong>{role}</strong></p></div><label>Model Gemini<select value={model} onChange={e=>setModel(e.target.value)} disabled={busy}>{MODELS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select></label></div>
   <div className="tf-gemini-quota"><AlertTriangle size={18}/><p><strong>Kuota tidak semestinya bertambah dengan banyak key.</strong> Google menetapkan kebanyakan had penggunaan mengikut projek Google Cloud, bukan setiap key. Jika semua key daripada projek sama, bertukar key mungkin tidak menyelesaikan had kuota. Pastikan penggunaan setiap key mematuhi polisi Google dan tetapan billing anda.</p></div>
   <label className="tf-ai-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> Saya faham API key saya akan dihantar ke pelayan Talentfolio AI untuk panggilan Gemini, dan data kemahiran, projek, pendidikan, pengalaman serta nama sijil saya akan dihantar kepada Google untuk dianalisis. Saya bersetuju meneruskan.</label>
