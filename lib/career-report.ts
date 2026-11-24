@@ -18,7 +18,7 @@ export function parseCareerReport(input:string){
  function append(block:ReportBlock){if(current)current.blocks.push(block);else intro.push(block);}
  for(const original of lines){
   const trimmed=original.trim();
-  if(!trimmed)continue;
+  if(!trimmed || /^([-*_])\\1{2,}$/.test(trimmed) || trimmed==="TAMAT_LAPORAN")continue;
   const heading=/^(#{1,5})\s+(.+)$/.exec(trimmed);
   const boldHeading=/^\*\*(?:\d+[.)]?\s*)?([^*]{5,110})\*\*\s*$/.exec(trimmed);
   const numberedHeading=/^(\d{1,2})[.)]\s+(.{7,120})$/.exec(trimmed);
