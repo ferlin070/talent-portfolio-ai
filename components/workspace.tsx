@@ -26,7 +26,8 @@ type Publication = {slug:string;template:PortfolioTheme;published:boolean;update
 const empty:Profile={display_name:"",user_type:"student",headline:"",bio:"",website:"",location:"",avatar_url:"",is_public:false};
 const paths=[["/dashboard","Dashboard",LayoutDashboard],["/portfolio","Portfolio Builder",Globe2],["/projects","Projects",FolderKanban],["/education","Education",GraduationCap],["/experience","Work Experience",BriefcaseBusiness],["/resume","Resume Builder",FileUser],["/certificates","Certificate Vault",Award],["/skills","Skills Analysis",ChartNoAxesCombined],["/profile","My Profile",UserRound],["/settings","Settings",Settings],["/prompt-generator","Prompt Generator",WandSparkles]] as const;
 const goals=[{value:"fullstack",label:"Full Stack Developer",targets:[5,4,4,4,4]},{value:"cloud",label:"Cloud Engineer",targets:[3,5,4,4,4]},{value:"data",label:"Data Analyst",targets:[3,3,5,4,4]}];
-const categories=["Web Development","Cloud Computing","Database","Communication","Documentation"];
+const categoriesByRole:Record<string,string[]>={fullstack:["Web Development","JavaScript","React","Database","Git"],cloud:["Cloud Computing","Linux","Networking","Docker","Security"],data:["SQL","Python","Data Analysis","Statistics","Data Visualization"]};
+const aliases:Record<string,string[]>={"Cloud Computing":["aws","azure","cloud","proxmox","gcp"],"Security":["cyber","zero trust","security","firewall"],"Database":["sql","postgres","database","mongodb","mysql"],"Web Development":["web development","next","react","frontend","backend"],"Data Visualization":["power bi","tableau","dashboard","visualization"],"Git":["git","github"],"Data Analysis":["analytics","analysis","data analyst"]};
 const nameSlug=(s:string)=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
 const onlyHttp=(v:string)=>{try{const u=new URL(v);return ["https:","http:"].includes(u.protocol)?u.toString():null}catch{return null}};
 const errText=(e:unknown)=>e instanceof Error?e.message:"Ralat tidak dijangka. Cuba lagi.";
@@ -64,7 +65,11 @@ export default function Workspace(){
  }catch(e){if(active)setNotice(errText(e));}finally{if(active)setLoading(false)}})();return()=>{active=false};},[client,refresh]);
  async function run(action:()=>Promise<void>){setBusy(true);setNotice("");try{await action();if(userId)await refresh(userId)}catch(e){setNotice(errText(e))}finally{setBusy(false)}}
  const completion=[!!profile.display_name,!!profile.headline,!!profile.bio,projects.length>0,skills.length>0,certs.length>0].filter(Boolean).length/6*100;
- const measured=categories.map((label)=>({label,score:skills.find(x=>x.name.toLowerCase()===label.toLowerCase())?.self_rating||0}));
+ const measured=(categoriesByRole[role]||categoriesByRole.fullstack).map((label)=>{
+ const keys=[label.toLowerCase(),...(aliases[label]||[])];
+ const scores=skills.filter(x=>keys.some(k=>x.name.toLowerCase().includes(k)||k.includes(x.name.toLowerCase()))).map(x=>x.self_rating||0);
+ return {label,score:scores.length?Math.max(...scores):0};
+ });
  const desired=goals.find(x=>x.value===role)||goals[0];
  const gaps=measured.map((x,i)=>({...x,target:desired.targets[i],gap:desired.targets[i]-x.score})).sort((a,b)=>b.gap-a.gap);
  const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",education:"Education",experience:"Work Experience",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile",prompt:"Prompt Generator"}[section];
