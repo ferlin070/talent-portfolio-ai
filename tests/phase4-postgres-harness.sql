@@ -38,3 +38,6 @@ GRANT EXECUTE ON FUNCTION storage.foldername(text) TO anon,authenticated;
 -- Exercise migration-specific grants against broadly granted Supabase-style defaults.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon,authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE,SELECT ON SEQUENCES TO anon,authenticated;
+
+-- Supabase grants direct EXECUTE privileges in addition to PUBLIC defaults.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon,authenticated;
