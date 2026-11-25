@@ -38,6 +38,25 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-only-not-a-real-key
         run: npm run build
+      - name: Install browser test runner in disposable CI
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run public and auth browser smoke tests on localhost
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-only-not-a-real-key
+        run: |
+          set -euo pipefail
+          npm run start -- --hostname 127.0.0.1 > /tmp/talentfolio-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/talentfolio-next.log' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/ > /dev/null
+          npx playwright test tests/phase4-browser.spec.mjs --workers=1 --reporter=line
   native-postgres-qa:
     if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false
     runs-on: ubuntu-24.04
