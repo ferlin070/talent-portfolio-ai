@@ -345,3 +345,44 @@ html.tf-dark .tf-account-danger .tf-settings-icon{background:#623344;color:#ffd5
 html.tf-dark .tf-account-danger .tf-btn-outline{background:#39263b;border-color:#af7483;color:#ffb8c4}
 html.tf-dark .tf-account-danger .tf-hint{color:#e1b6c0}
 @media(max-width:560px){.tf-account-danger{padding:17px}}
+
+
+/* Phase 2 — portfolio publishing privacy, preview and accessible confirmation */
+.tf-publication-status{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:17px 0;padding:14px 18px;background:linear-gradient(110deg,#f8faff,#e9effd);border:1px solid #dce5f6;border-radius:15px;color:#304969;font-size:13px}
+.tf-publication-status strong{display:flex;align-items:center;gap:7px;color:#264578}
+.tf-publication-status.is-dirty{background:#fff9e9;border-color:#f2db9c}
+.tf-publication-status.is-dirty strong{color:#a36b13}
+.tf-publish-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0 18px}
+.tf-publish-option{display:flex;align-items:center;gap:10px;background:#f8faff;border:1px solid #dce5f3;border-radius:12px;padding:12px 13px;cursor:pointer;min-height:49px;font-size:13px;font-weight:650;color:#324869}
+.tf-publish-option input{width:18px;height:18px;accent-color:#536fe5;flex-shrink:0}
+.tf-publish-option:has(input:focus-visible){outline:3px solid #93a7ff;outline-offset:2px}
+.tf-publish-privacy{display:grid;gap:9px;margin:12px 0;padding:14px 17px;background:#eff4ff;border:1px solid #d8e4fc;border-radius:12px}
+.tf-publish-privacy p{margin:0;color:#52688e;font-size:12px;line-height:1.65}
+.tf-publish-privacy label{display:flex;align-items:center;gap:9px;color:#304970;font-size:13px;cursor:pointer}
+.tf-publish-privacy input{height:18px;width:18px;accent-color:#536fe5}
+.tf-publish-url{display:block;overflow-wrap:anywhere;padding:9px 12px;border-radius:9px;background:#f5f7ff;border:1px solid #e1e7f6;color:#3551a6;font-size:12px}
+.tf-publish-section-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 13px;margin:12px 0}
+.tf-publish-section-summary span{font-size:12px;color:#426082;display:flex;align-items:center;gap:6px}
+.tf-publish-section-summary span svg{color:#3d78b2;flex:none}
+.tf-publication-hint{font-size:12px;color:#627b99;line-height:1.65}
+.tf-preview-privacy{font-size:11px;color:#506d95;border:1px solid #d6e3f7;background:#f2f6ff;border-radius:9px;padding:9px 12px;margin-bottom:15px}
+.tf-dialog-backdrop{position:fixed;inset:0;z-index:1500;display:grid;place-items:center;padding:16px;background:#0d193fc7;backdrop-filter:blur(7px)}
+.tf-dialog-panel{width:min(100%,545px);max-height:90vh;overflow-y:auto;background:#fff;color:#203a59;border:1px solid #d9e3f4;border-radius:20px;box-shadow:0 30px 88px #091a4488;padding:27px}
+.tf-dialog-heading{display:flex;align-items:center;justify-content:space-between}
+.tf-dialog-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:11px;background:#eaf0ff;color:#4b67cb}
+.tf-dialog-icon.danger{background:#ffebed;color:#b93f4d}
+.tf-dialog-close{display:grid;place-items:center;width:35px;height:35px;border-radius:9px;background:#f2f5fb;border:0;color:#546782;cursor:pointer}
+.tf-dialog-panel h2{font-size:22px;line-height:1.3;margin:14px 0 9px;color:#1b365e}
+.tf-dialog-panel>p{font-size:13px;line-height:1.7;color:#667c9b;margin:0 0 14px}
+.tf-dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.tf-dialog-danger-button{background:#bf3b4a;color:#fff;border-color:#bf3b4a}
+.tf-dialog-danger-button:hover{background:#9f2735}
+html.tf-dark .tf-publication-status{background:#1b3153;border-color:#42618d;color:#cfddf6}
+html.tf-dark .tf-publication-status strong{color:#d7e4ff}
+html.tf-dark .tf-publication-status.is-dirty{background:#403419;border-color:#95722f}
+html.tf-dark .tf-publish-option,html.tf-dark .tf-publish-privacy,html.tf-dark .tf-dialog-panel{background:#20304d;border-color:#45618a;color:#e0eafc}
+html.tf-dark .tf-publish-privacy p,html.tf-dark .tf-publish-privacy label{color:#c7d9f3}
+html.tf-dark .tf-dialog-panel h2{color:#f3f7ff}
+html.tf-dark .tf-dialog-panel>p{color:#bed0e9}
+html.tf-dark .tf-publish-url,html.tf-dark .tf-preview-privacy{background:#243c60;border-color:#46618c;color:#d3e2fc}
+@media(max-width:620px){.tf-publish-options,.tf-publish-section-summary{grid-template-columns:1fr}.tf-dialog-panel{padding:21px}.tf-dialog-panel h2{font-size:20px}.tf-publication-status{margin:13px 0;padding:12px}}
