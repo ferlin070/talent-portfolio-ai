@@ -4,6 +4,7 @@ import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,A
 import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
 import CareerReport from "@/components/career-report";
+import ConfirmDialog from "@/components/confirm-dialog";
 import {parseCareerReport} from "@/lib/career-report";
 import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/gemini-models";
 import {encryptVault,decryptVault,vaultStorageKey,type VaultEnvelope} from "@/lib/gemini-key-vault";
@@ -19,6 +20,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
  const [attempts,setAttempts]=useState<Attempt[]>([]),[usedSlot,setUsedSlot]=useState<number|null>(null),[copied,setCopied]=useState(false);
  const [vaultOwner,setVaultOwner]=useState<string|null>(null);
  const [vaultExists,setVaultExists]=useState(false),[vaultPassphrase,setVaultPassphrase]=useState(""),[vaultBusy,setVaultBusy]=useState(false),[vaultMessage,setVaultMessage]=useState("");
+ const [confirmVaultDeletion,setConfirmVaultDeletion]=useState(false);
  useEffect(()=>{let live=true;void db.auth.getUser().then(({data})=>{
   if(!live)return;
   const id=data.user?.id||null;setVaultOwner(id);
@@ -49,7 +51,8 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
   finally{setVaultBusy(false)}
  }
  function deleteVault(){
-  if(!vaultOwner||!confirm("Padam semua API key tersimpan pada peranti ini? Ini tidak membatalkan key di Google AI Studio."))return;
+  if(!vaultOwner)return;
+  setConfirmVaultDeletion(false);
   try{localStorage.removeItem(vaultStorageKey(vaultOwner));setVaultExists(false);setVaultPassphrase("");setVaultMessage("Vault setempat telah dipadam. Key dalam borang masih ada sehingga refresh.");}
   catch{setVaultMessage("Gagal memadam vault setempat.");}
  }
@@ -118,7 +121,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
    <label className="tf-gemini-vault-input">Kata laluan vault (minimum 12 aksara)<input type="password" autoComplete="new-password" minLength={12} value={vaultPassphrase} onChange={e=>setVaultPassphrase(e.target.value)} placeholder="Kata laluan khusus untuk melindungi key"/></label>
    <div className="tf-gemini-vault-actions"><button type="button" className="tf-btn" disabled={!vaultOwner||vaultBusy||!valid.length||vaultPassphrase.length<12} onClick={()=>void saveVault()}><Save size={15}/>{vaultBusy?"Memproses...":"Simpan Key Terenkripsi"}</button>
     {vaultExists&&<button type="button" className="tf-btn tf-btn-outline" disabled={vaultBusy||vaultPassphrase.length===0} onClick={()=>void unlockVault()}><Unlock size={15}/>Buka Key Tersimpan</button>}
-    {vaultExists&&<button type="button" className="tf-btn tf-btn-outline" disabled={vaultBusy} onClick={deleteVault}><ShieldOff size={15}/>Padam Vault</button>}
+    {vaultExists&&<button type="button" className="tf-btn tf-btn-outline" disabled={vaultBusy} onClick={()=>setConfirmVaultDeletion(true)}><ShieldOff size={15}/>Padam Vault</button>}
    </div>
    {vaultMessage&&<p role="status" className="tf-gemini-vault-message">{vaultMessage}</p>}
   </div>
@@ -132,5 +135,14 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
   {result&&<><CareerReport text={result} role={role} model={model} usedSlot={usedSlot} onCopy={()=>void copy(result)}/>{attempts.length>0&&<p className="tf-hint">Key sebelumnya tidak berjaya: {attempts.map(a=>`#${a.slot} (${a.status})`).join(", ")}</p>}</>}
   <div className="tf-gemini-fallback"><div><strong>Tiada API key? Gunakan AI pilihan anda.</strong><p>Anda masih boleh salin prompt analisis profesional dan tampal dalam ChatGPT, Gemini atau Claude tanpa sambungan API pada website.</p></div><button className="tf-btn tf-btn-outline" type="button" onClick={()=>void copy(analysisPrompt)}><Copy size={14}/>{copied?"Disalin":"Salin Prompt Analisis"}</button><Link href="/prompt-generator">Buka Prompt Generator</Link></div>
   <p className="tf-muted">Gemini memberikan cadangan berdasarkan data kendiri; ia tidak mengesahkan sijil atau tahap kemahiran. Setiap panggilan API tertakluk kepada kuota dan caj akaun Google anda.</p>
+  <ConfirmDialog
+   open={confirmVaultDeletion}
+   title="Padam vault API key?"
+   description="Semua API key yang disimpan secara terenkripsi pada peranti ini akan dipadam. Key di Google AI Studio tidak akan dibatalkan."
+   confirmLabel="Padam Vault"
+   danger busy={vaultBusy}
+   onClose={()=>setConfirmVaultDeletion(false)}
+   onConfirm={deleteVault}
+  />
  </section>;
 }
