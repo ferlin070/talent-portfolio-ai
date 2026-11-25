@@ -86,7 +86,7 @@ export default function AccountSettings(){
   const {error}=await client.auth.reauthenticate();if(error)throw error;
   setSuccess("Kod pengesahan semula dihantar ke e-mel anda. Masukkan kod di bawah dan cuba tukar kata laluan.");
  })}
- return <main className="tf-settings-page"><div className="tf-settings-wrap">
+ return <main className="tf-settings-page" id="tf-main-content" tabIndex={-1}><div className="tf-settings-wrap">
   <div className="tf-settings-top"><Link href="/dashboard" className="tf-btn tf-btn-outline"><ArrowLeft size={16}/> Back to Dashboard</Link><span><ShieldCheck size={15}/> Private Account</span></div>
   <div className="tf-eyebrow">ACCOUNT & SECURITY</div><h1>Account Settings</h1><p className="tf-settings-sub">Urus keselamatan akaun dan kata laluan Talentfolio AI anda.</p>
   {loading?<p>Memuatkan akaun...</p>:!signedIn?<section className="tf-card tf-section"><h2>Log masuk diperlukan</h2><p>Sila log masuk sebelum mengubah tetapan akaun.</p><Link className="tf-btn" href="/auth">Log masuk</Link></section>:<>
