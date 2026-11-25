@@ -212,3 +212,6 @@ html.tf-dark .tf-component-loading{color:#cddcfa;background:#243554;border-color
 @media print{
  .tf-skip-link,.tf-marketing-demo,.tf-mobile-close,.tf-skeleton-page{display:none!important}
 }
+
+.tf-skip-anchor{display:block;position:relative;height:0;scroll-margin-top:88px}
+#tf-main-content{scroll-margin-top:78px}
