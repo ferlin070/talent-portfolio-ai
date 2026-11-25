@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
     if (new TextEncoder().encode(raw).byteLength > 4096) {
       return response("Permintaan terlalu besar.", 413);
     }
-    input = JSON.parse(raw) as PublishRequest;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return response("Input mesti objek JSON.", 400);
+    }
+    input = parsed as PublishRequest;
   } catch {
     return response("Format input tidak sah.", 400);
   }
