@@ -329,3 +329,19 @@ html.tf-dark .tf-auth-bottom>small{color:#b6c9e5}
  .tf-support-logos-compact .tf-support-logo-divider{height:31px}
  .tf-support-dashboard-main .tf-support-logos{gap:6px;padding:9px}
 }
+
+
+/* Security settings — data portability and destructive action controls */
+.tf-account-danger{border:1px solid #e5b9be;background:linear-gradient(160deg,#fff,#fff8f8)}
+.tf-account-danger .tf-settings-icon{background:#fde7e9;color:#ab3540}
+.tf-account-danger .tf-settings-section-head h2{color:#912d39}
+.tf-account-danger .tf-btn-outline{border-color:#d58d96;color:#9e3040;background:#fff}
+.tf-account-danger .tf-btn-outline:hover:not(:disabled){background:#fff0f1}
+.tf-account-danger .tf-btn-outline:disabled{opacity:.5;cursor:not-allowed}
+.tf-account-danger .tf-hint{color:#855260;line-height:1.7}
+html.tf-dark .tf-account-danger{background:#302531;border-color:#8d4f60}
+html.tf-dark .tf-account-danger .tf-settings-section-head h2{color:#ffb8c0}
+html.tf-dark .tf-account-danger .tf-settings-icon{background:#623344;color:#ffd5db}
+html.tf-dark .tf-account-danger .tf-btn-outline{background:#39263b;border-color:#af7483;color:#ffb8c4}
+html.tf-dark .tf-account-danger .tf-hint{color:#e1b6c0}
+@media(max-width:560px){.tf-account-danger{padding:17px}}

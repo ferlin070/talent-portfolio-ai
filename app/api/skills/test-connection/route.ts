@@ -1,23 +1,26 @@
+import { authorizeGeminiRequest, readJsonBody, geminiError } from "@/lib/gemini-api-security";
+import { DEFAULT_GEMINI_MODEL, isGeminiModel } from "@/lib/gemini-models";
 import {NextRequest,NextResponse} from "next/server";
-import {createClient} from "@supabase/supabase-js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=30;
-const supported=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash-lite"];
 const respond=(data:Record<string,unknown>,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});
 export async function POST(req:NextRequest){
- const bearer=req.headers.get("authorization")||"";
- if(!bearer.startsWith("Bearer "))return respond({error:"Sila log masuk semula."},401);
- const endpoint=process.env.NEXT_PUBLIC_SUPABASE_URL,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
- if(!endpoint||!anon)return respond({error:"Supabase tidak dikonfigurasi."},503);
- const db=createClient(endpoint,anon,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:bearer}}});
- const {data:{user},error}=await db.auth.getUser(bearer.slice(7));
- if(error||!user)return respond({error:"Sesi tidak sah."},401);
+ const authorized=await authorizeGeminiRequest(req,"connection_test");
+ if(authorized instanceof NextResponse)return authorized;
+
  let input:{apiKey?:string;model?:string};
- try{input=await req.json() as {apiKey?:string;model?:string}}catch{return respond({error:"Format input tidak sah."},400)}
+ try{
+   input=await readJsonBody<{apiKey?:string;model?:string}>(req);
+ }catch(error){
+   const message=error instanceof Error?error.message:"Input tidak sah.";
+   return geminiError(message,message.includes("16 KB")?413:400);
+ }
  const key=typeof input.apiKey==="string"?input.apiKey.trim():"";
- const model=typeof input.model==="string"?input.model:"gemini-3.5-flash-lite";
- if(key.length<15||key.length>250||/\s/.test(key)||!supported.includes(model))return respond({error:"Semak key dan model Gemini."},400);
+ const model=input.model??DEFAULT_GEMINI_MODEL;
+ if(key.length<15||key.length>250||/\s/.test(key)||!isGeminiModel(model)){
+   return respond({error:"Semak API key dan model Gemini."},400);
+ }
  const controller=new AbortController(),started=Date.now(),timer=setTimeout(()=>controller.abort(),18000);
  try{
   const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{

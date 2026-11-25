@@ -52,7 +52,13 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
   const {error}=await supabase.from("projects").update({title:draft.title.trim(),description:draft.description.trim(),url:url||null,is_public:draft.is_public}).eq("id",selected).eq("user_id",userId);if(error)throw error;setNotice("Penerangan projek dikemas kini. Publish semula untuk paparkan perubahan.");
  });}
  async function saveCaption(im:GalleryImage){await act(async()=>{const {error}=await supabase.from("project_images").update({caption:(captions[im.id]||"").trim()}).eq("id",im.id).eq("user_id",userId);if(error)throw error;setNotice("Kapsyen gambar disimpan.");});}
- async function cover(im:GalleryImage){await act(async()=>{const {error:e1}=await supabase.from("project_images").update({is_cover:false}).eq("project_id",selected).eq("user_id",userId);if(e1)throw e1;const {error:e2}=await supabase.from("project_images").update({is_cover:true}).eq("id",im.id).eq("user_id",userId);if(e2)throw e2;setNotice("Gambar utama ditetapkan.");});}
+ async function cover(image:GalleryImage){
+  await act(async()=>{
+    const {error}=await supabase.rpc("set_project_cover",{p_image_id:image.id});
+    if(error)throw error;
+    setNotice("Gambar utama berjaya ditetapkan secara atomik.");
+  });
+}
  async function move(im:GalleryImage,step:number){const i=images.findIndex(x=>x.id===im.id),other=images[i+step];if(!other)return;await act(async()=>{const {error:e1}=await supabase.from("project_images").update({sort_order:other.sort_order}).eq("id",im.id).eq("user_id",userId);if(e1)throw e1;const {error:e2}=await supabase.from("project_images").update({sort_order:im.sort_order}).eq("id",other.id).eq("user_id",userId);if(e2)throw e2;});}
  async function remove(im:GalleryImage){if(!confirm("Padam gambar dan kapsyen ini?"))return;await act(async()=>{const {error:e}=await supabase.from("project_images").delete().eq("id",im.id).eq("user_id",userId);if(e)throw e;const {error:se}=await supabase.storage.from(BUCKET).remove([im.storage_path]);if(se)throw new Error("Metadata dipadam, tetapi fail gagal dipadam: "+se.message);setNotice("Gambar dipadam.");});}
  if(!projects.length)return null;

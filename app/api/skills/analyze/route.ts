@@ -1,32 +1,33 @@
+import { authorizeGeminiRequest, readJsonBody, geminiError } from "@/lib/gemini-api-security";
+import { DEFAULT_GEMINI_MODEL, isGeminiModel } from "@/lib/gemini-models";
 import {verifyCareerReport} from "@/lib/career-validation";
 import {NextRequest,NextResponse} from "next/server";
-import {createClient} from "@supabase/supabase-js";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=60;
-const MODELS=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash-lite"] as const;
 const MAX_KEYS=5;
 const HEADERS={"Cache-Control":"no-store","Pragma":"no-cache"};
 const reply=(object:Record<string,unknown>,status=200)=>NextResponse.json(object,{status,headers:HEADERS});
 type Body={role?:string;model?:string;apiKeys?:unknown;consent?:boolean};
 type GeminiResponse={candidates?:Array<{content?:{parts?:Array<{text?:string}>};finishReason?:string}>;error?:{status?:string;message?:string}};
 export async function POST(request:NextRequest){
- const auth=request.headers.get("authorization")||"";
- if(!auth.startsWith("Bearer "))return reply({error:"Sila log masuk untuk menggunakan analisis Gemini."},401);
- const token=auth.slice(7);
- const url=process.env.NEXT_PUBLIC_SUPABASE_URL,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
- if(!url||!anon)return reply({error:"Konfigurasi Supabase belum tersedia."},503);
- const db=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${token}`}},auth:{persistSession:false,autoRefreshToken:false}});
- const {data:{user},error:authError}=await db.auth.getUser(token);
- if(authError||!user)return reply({error:"Sesi telah tamat. Sila log masuk semula."},401);
- if(Number(request.headers.get("content-length")||0)>16000)return reply({error:"Saiz permintaan terlalu besar."},413);
+ const authorized=await authorizeGeminiRequest(request,"analysis");
+ if(authorized instanceof NextResponse)return authorized;
+ const db=authorized.client;
+ const user=authorized.user;
+
  let body:Body;
- try{body=await request.json() as Body}catch{return reply({error:"Format permintaan tidak sah."},400)}
+ try{
+   body=await readJsonBody<Body>(request);
+ }catch(error){
+   const message=error instanceof Error?error.message:"Input tidak sah.";
+   return geminiError(message,message.includes("16 KB")?413:400);
+ }
  if(body.consent!==true)return reply({error:"Persetujuan diperlukan sebelum menghantar data profil kepada Gemini."},400);
  const target=typeof body.role==="string"?body.role.trim().slice(0,100):"";
  if(!target)return reply({error:"Sila pilih jawatan sasaran."},400);
- const model=typeof body.model==="string"?body.model:"gemini-3.5-flash-lite";
- if(!MODELS.includes(model as typeof MODELS[number]))return reply({error:"Model Gemini yang dipilih tidak disokong."},400);
+ const model=body.model??DEFAULT_GEMINI_MODEL;
+ if(!isGeminiModel(model))return reply({error:"Model Gemini tidak disokong. Semak Google AI Studio."},400);
  if(!Array.isArray(body.apiKeys)||body.apiKeys.length===0||body.apiKeys.length>MAX_KEYS
    ||body.apiKeys.some(k=>typeof k!=="string"||k.length<15||k.length>250||/[\r\n\s]/.test(k)))
    return reply({error:"Masukkan 1 hingga 5 API key Gemini yang sah. Setiap key mestilah berasingan."},400);
