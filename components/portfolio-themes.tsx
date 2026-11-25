@@ -27,6 +27,7 @@ function Header({theme,name,website}:{theme:NewTheme;name:string;website:string}
 
 function Amber({p}:{p:ThemeProps}){
  return <div className="tpl tpl-amber" id="top">
+ {!p.preview&&<span id="tf-main-content" className="tf-skip-anchor" tabIndex={-1}/>}
  <Header theme="amber" name={p.name} website={p.website}/>
  <section className="tpl-hero tpl-amber-hero"><div className="tpl-hero-copy"><span className="tpl-kicker">— HELLO, I&apos;M</span><h1>{p.name||"Your Name"}<span className="tpl-caret">|</span></h1><h2>{p.headline||"Creative Full-Stack Developer"}</h2><p>{p.bio||"I build thoughtful digital experiences that help people and businesses grow."}</p><div className="tpl-actions"><a href="#contact" className="tpl-primary">CONTACT <ArrowRight size={16}/></a><a href="#projects" className="tpl-outline">VIEW MY WORK <ArrowUpRight size={15}/></a></div>{p.openToOpportunities&&<div className="tpl-available"><span/> AVAILABLE FOR OPPORTUNITIES</div>}</div>
  <div className="tpl-hero-portrait"><div className="tpl-orbit orbit-a"/><div className="tpl-orbit orbit-b"/><Portrait avatar={p.avatar} name={p.name}/><span className="tpl-tech-tag tag-1"><Code2 size={14}/> Web</span><span className="tpl-tech-tag tag-2"><Database size={14}/> SQL</span><span className="tpl-tech-tag tag-3"><Server size={14}/> Cloud</span></div></section>
@@ -54,6 +55,7 @@ function Neon({p}:{p:ThemeProps}){
 function Crimson({p}:{p:ThemeProps}){
  const words=p.name.trim().split(/\s+/);const firstName=words[0]||"Your",lastName=words.slice(1).join(" ")||"Name";
  return <div className="tpl tpl-crimson" id="top">
+ {!p.preview&&<span id="tf-main-content" className="tf-skip-anchor" tabIndex={-1}/>}
  <header className="tpl-crimson-header"><span>DESIGN PORTFOLIO<br/>DIGITAL CREATOR</span>{p.openToOpportunities&&<span>AVAILABLE FOR OPPORTUNITIES <b>✳</b></span>}</header>
  <section className="tpl-crimson-hero"><div className="tpl-crimson-giant" aria-hidden="true">PORTFOLIO</div><div className="tpl-crimson-portrait"><Portrait name={p.name} avatar={p.avatar}/></div><div className="tpl-crimson-copy"><span className="tpl-crimson-hello">Hello, I&apos;m</span><h1>{firstName}<br/>{lastName}</h1><strong>{p.headline||"Creative Developer & Digital Designer"}</strong><p>{p.bio||"Creative digital experiences built with purpose, technical skill and attention to detail."}</p><a href="#projects" className="tpl-crimson-link">EXPLORE MY WORK <ArrowRight size={17}/></a></div><div className="tpl-crimson-side"><span>✳</span><p>Turning ideas into powerful digital experiences.</p><div><strong>{p.experience.length}+</strong><small>CAREER ROLES</small></div><div><strong>{p.projects.length}+</strong><small>PROJECTS BUILT</small></div></div></section>
  <section className="tpl-section" id="projects"><div className="tpl-crimson-divider"><h2>SELECTED PROJECTS</h2><span>EXPLORE PROJECTS <ArrowRight size={16}/></span></div><Works projects={p.projects}/></section>
