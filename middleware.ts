@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { safeNext } from "@/lib/safe-next";
 
 const protectedPages = new Set([
   "dashboard",
@@ -15,13 +16,6 @@ const protectedPages = new Set([
   "prompt-generator",
 ]);
 
-function safeNext(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
-  }
-
-  return value;
-}
 
 export async function middleware(request: NextRequest) {
   const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
