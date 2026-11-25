@@ -57,7 +57,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:3000/ > /dev/null
-          npx playwright test tests/phase4-browser.spec.mjs tests/phase4-export.spec.mjs --workers=1 --reporter=line
+          npx playwright test tests/phase4-browser.spec.mjs tests/phase4-export.spec.mjs tests/phase4-api.spec.mjs --workers=1 --reporter=line
   native-postgres-qa:
     if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false
     runs-on: ubuntu-24.04
