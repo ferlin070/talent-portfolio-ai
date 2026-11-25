@@ -96,5 +96,14 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
    {loading?<p>Memuatkan galeri...</p>:images.length===0?<div className="tf-gallery-empty"><Images size={29}/><b>Tiada gambar lagi</b><span>Tambah gambar kerja pertama untuk projek ini.</span></div>:
    <div className="tf-gallery-items">{images.map((im,i)=>{const src=supabase.storage.from(BUCKET).getPublicUrl(im.storage_path).data.publicUrl;return <article key={im.id} className="tf-gallery-item"><div className="tf-gallery-item-photo"><img alt={im.caption||`Gambar ${i+1} projek ${project.title}`} src={src} loading="lazy"/>{im.is_cover&&<span className="tf-gallery-cover"><Star size={13}/> Cover</span>}</div><div className="tf-gallery-item-body"><label>Kapsyen gambar<textarea rows={2} maxLength={500} placeholder="Contoh: Reka bentuk dashboard selepas penambahbaikan..." value={captions[im.id]??im.caption} onChange={e=>setCaptions(prev=>({...prev,[im.id]:e.target.value}))}/></label><div className="tf-gallery-item-actions"><button type="button" title="Simpan kapsyen" disabled={busy} onClick={()=>void saveCaption(im)}><Check size={15}/> Save</button><button type="button" title="Jadikan gambar utama" disabled={busy||im.is_cover} onClick={()=>void cover(im)}><Star size={15}/></button><button type="button" title="Alih ke kiri" disabled={busy||i===0} onClick={()=>void move(im,-1)}><ArrowUp size={15}/></button><button type="button" title="Alih ke kanan" disabled={busy||i===images.length-1} onClick={()=>void move(im,1)}><ArrowDown size={15}/></button><button type="button" title="Padam gambar" disabled={busy} onClick={()=>setPendingDeletion(im)}><Trash2 size={15}/></button></div></div></article>})}</div>}
    </>}
+ <ConfirmDialog
+  open={pendingDeletion!==null}
+  title="Padam gambar projek?"
+  description="Foto ini bersama kapsyen akan dipadam secara kekal daripada galeri."
+  confirmLabel="Padam Gambar"
+  danger busy={busy}
+  onClose={()=>setPendingDeletion(null)}
+  onConfirm={()=>void removeConfirmed()}
+ />
  </section>;
 }
