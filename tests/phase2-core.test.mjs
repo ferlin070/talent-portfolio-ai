@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { safeNext } from "../lib/safe-next.ts";
 import { matchesSkillPhrase } from "../lib/skill-match.ts";
 import {
   validPortfolioSlug, normalizeSections, visualFingerprint, buildDraftSnapshot,
@@ -89,4 +90,13 @@ test("UI fingerprints are key-order independent", () => {
     visualFingerprint({ skills: [] }),
     visualFingerprint({ skills: [{ name: "SQL" }] }),
   );
+});
+
+
+test("auth redirects stay same-origin and preserve workspace deep links", () => {
+  for (const value of [null, "", "https://example.invalid", "//example.invalid", "/\\example.invalid", "/\t/example.invalid", "/a/..//example.invalid", "/%2fexample.invalid", "/%5cexample.invalid", "/auth", "/auth/callback"]) {
+    assert.equal(safeNext(value), "/dashboard", String(value));
+  }
+  assert.equal(safeNext("/resume?template=modern#cv"), "/resume?template=modern#cv");
+  assert.equal(safeNext("/portfolio"), "/portfolio");
 });
