@@ -136,3 +136,28 @@ test("shared print and Word report parser preserves text and removes Markdown se
  assert.deepEqual(parsed.intro,[{type:"paragraph",text:"Ringkasan & fakta <ujian>"}]);
  assert.deepEqual(parsed.sections[0].blocks,[{type:"bullet",text:"**Bukti:** A & B sambungan isi"}]);
 });
+
+import { isAllowedRequestOrigin } from "../lib/request-origin.ts";
+test("strict origin validation permits only equivalent loopback aliases in disposable CI",()=>{
+ const oldCI=process.env.CI,oldUrl=process.env.NEXT_PUBLIC_SUPABASE_URL;
+ const target="http://localhost:3000/api/portfolio/publish";
+ try{
+  process.env.CI="true";
+  process.env.NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321";
+  assert.equal(isAllowedRequestOrigin("http://127.0.0.1:3000",target),true);
+  assert.equal(isAllowedRequestOrigin("http://localhost:3000",target),true);
+  assert.equal(isAllowedRequestOrigin(null,target),true);
+  for(const origin of ["https://127.0.0.1:3000","http://127.0.0.1:3001","https://evil.example","http://localhost:3000.evil.example","http://localhost:3000/path","null",""]){
+   assert.equal(isAllowedRequestOrigin(origin,target),false,origin);
+  }
+  process.env.CI="false";
+  assert.equal(isAllowedRequestOrigin("http://127.0.0.1:3000",target),false);
+  assert.equal(isAllowedRequestOrigin("https://talent-portfolio-ai.vercel.app","https://talent-portfolio-ai.vercel.app/api/portfolio/publish"),true);
+  process.env.CI="true";
+  process.env.NEXT_PUBLIC_SUPABASE_URL="https://example.supabase.co";
+  assert.equal(isAllowedRequestOrigin("http://127.0.0.1:3000",target),false);
+ }finally{
+  if(oldCI===undefined)delete process.env.CI;else process.env.CI=oldCI;
+  if(oldUrl===undefined)delete process.env.NEXT_PUBLIC_SUPABASE_URL;else process.env.NEXT_PUBLIC_SUPABASE_URL=oldUrl;
+ }
+});
