@@ -229,7 +229,7 @@ export default function Workspace(){
  <div className="tf-top-right"><button type="button" className="tf-theme-toggle" aria-label={dark?"Aktifkan light mode":"Aktifkan dark mode"} title={dark?"Light Mode":"Dark Mode"} onClick={toggleDark}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><span className="tf-online"><span/> Personal workspace</span><Link href="/profile" aria-label="Profil" className="tf-avatar">{profile.avatar_url?<img src={profile.avatar_url} alt="Foto profil"/>:username.slice(0,2).toUpperCase()}</Link></div></header>
  <main className="tf-content">{notice&&protectedNotice}
  {undoProject&&<div className="tf-undo-toast" role="status">
-  <span>Projek "{undoProject.title}" dipadam. Anda boleh memulihkannya dalam 6 saat.</span>
+  <span>Projek &ldquo;{undoProject.title}&rdquo; dipadam. Anda boleh memulihkannya dalam 6 saat.</span>
   <button type="button" onClick={()=>void undoProjectDeletion()} disabled={busy}>Buat Asal</button>
  </div>}
  {loading?<div className="tf-loading"><RefreshCw className="tf-spin"/> Memuatkan ruang kerja anda...</div>:!userId?<div className="tf-signedout"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><h1>Ruang kerja profesional anda</h1><p>Daftar atau log masuk untuk menyimpan profil, sijil, projek dan kemahiran secara selamat.</p><Link className="tf-btn" href="/auth">Daftar / Log masuk <ArrowRight size={16}/></Link><Link href="/" className="tf-link">Lihat laman utama</Link></div>:<>
