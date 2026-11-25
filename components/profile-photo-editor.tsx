@@ -2,6 +2,7 @@
 import { useEffect,useMemo,useRef,useState } from "react";
 import { Camera,CheckCircle2,Trash2,UploadCloud,UserRound } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
+import ConfirmDialog from "@/components/confirm-dialog";
 
 const bucket="profile-photos";
 const MAX=2*1024*1024;
@@ -9,6 +10,7 @@ export default function ProfilePhotoEditor({userId,url,onChange}:{userId:string;
  const client=useMemo(()=>getSupabaseClient(),[]);
  const input=useRef<HTMLInputElement>(null);
  const [preview,setPreview]=useState(""),[file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
+ const [pendingDelete,setPendingDelete]=useState(false);
  useEffect(()=>{if(!file){setPreview("");return;}const objectUrl=URL.createObjectURL(file);setPreview(objectUrl);return()=>URL.revokeObjectURL(objectUrl)},[file]);
  const trustedPrefix=`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${userId}/`;
  function oldPath(){if(!url.startsWith(trustedPrefix))return null;return decodeURIComponent(url.slice(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/`.length));}
@@ -32,7 +34,7 @@ export default function ProfilePhotoEditor({userId,url,onChange}:{userId:string;
  }
  async function remove(){
   if(!url)return;
-  if(!confirm("Buang gambar profil anda?"))return;
+  setPendingDelete(false);
   setBusy(true);setMessage("");
   try{
    const previous=oldPath();
@@ -60,8 +62,17 @@ export default function ProfilePhotoEditor({userId,url,onChange}:{userId:string;
   <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>selectFile(e.target.files?.[0]||null)} className="tf-visually-hidden"/>
   <div className="tf-form-actions"><button className="tf-btn tf-btn-outline" disabled={busy} type="button" onClick={()=>input.current?.click()}><UploadCloud size={16}/> Pilih Gambar</button>
   {file&&<button className="tf-btn" disabled={busy} onClick={()=>void upload()}><CheckCircle2 size={16}/> Simpan Gambar</button>}
-  {url&&<button className="tf-btn tf-btn-outline" disabled={busy} onClick={()=>void remove()}><Trash2 size={15}/> Buang</button>}</div>
+  {url&&<button className="tf-btn tf-btn-outline" disabled={busy} onClick={()=>setPendingDelete(true)}><Trash2 size={15}/> Buang</button>}</div>
   </div></div><p className="tf-photo-privacy">Perhatian: gambar disimpan dalam storan awam untuk paparan portfolio. Jangan muat naik gambar sensitif. Penerbitan portfolio tetap dikawal secara berasingan.</p>
   {message&&<p className="tf-hint" role="status">{message}</p>}
+ <ConfirmDialog
+  open={pendingDelete}
+  title="Padam gambar profil?"
+  description="Gambar profil akan dibuang daripada akaun anda. Portfolio yang telah diterbitkan masih memerlukan penerbitan semula."
+  confirmLabel="Padam Foto"
+  danger busy={busy}
+  onClose={()=>setPendingDelete(false)}
+  onConfirm={()=>void remove()}
+ />
  </section>
 }
