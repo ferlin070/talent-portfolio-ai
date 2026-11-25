@@ -204,35 +204,147 @@ export default function Workspace(){
  {gaps.map(g=><div className="tf-gap" key={g.label}><div><b>{g.label}</b><span style={{color:g.gap>0?"#ae7622":"#169d87"}}>{g.gap>0?`Gap +${g.gap}`:g.score===0?"Not assessed":"Meets target"}</span></div><div className="tf-track"><div style={{width:`${g.score*20}%`}}/></div><small>Current {g.score}/5 · Target {g.target}/5</small></div>)}</section></div>
  <div className="tf-two tf-space-top"><SkillEditor userId={userId} skills={skills} onChanged={()=>refresh(userId)}/> <section className="tf-card tf-section"><div className="tf-card-head"><h3>90-Day Growth Roadmap</h3><span className="tf-pill green">RULE-BASED</span></div>{[[30,"Build fundamentals","Pilih satu bidang paling memerlukan perhatian dan lengkapkan modul asas."],[60,"Create stronger evidence","Bina projek praktikal dan dokumentasikan keputusan serta teknologi digunakan."],[90,"Demonstrate readiness","Semak bersama mentor dan kemas kini portfolio untuk jawatan sasaran."]].map(([day,title,description])=><div className="tf-roadmap" key={day}><span>{day}</span><div><b>{title}</b><p>{description}</p></div></div>)}</section></div><p className="tf-warning"><ShieldCheck size={17}/> Ini bukan AI generatif atau pengesahan kelayakan pekerjaan. Perbandingan sasaran adalah ilustrasi dan memerlukan penilaian manusia.</p></>}
  {section==="prompt"&&<PromptGenerator/>}
- {section==="portfolio"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL WEBSITE BUILDER</div><h1>Portfolio Builder</h1><p>Bina dan terbitkan halaman awam daripada profil dan projek pilihan anda.</p></div>{publication?.published&&<a className="tf-btn tf-btn-outline" href={`/u/${publication.slug}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> View live</a>}</div>
- <div className="tf-portfolio-controls"><div className="tf-segments">{(["modern","minimal","tech"] as const).map(t=><button type="button" key={t} className={theme===t?"active":""} onClick={()=>setTheme(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div><span className="tf-pill"><ShieldCheck size={14}/> Your content · Your portfolio</span></div>
- <div className="tf-template-gallery-heading">✦ Portfolio Gallery — 9 Professional Templates</div>
- <div className="tf-template-gallery">{([["amber","Amber Developer","Dark charcoal · Orange glow","DEVFUSION"],["neon","Neon Cyber","Cyber black · Cyan neon","DevPortfolio"],["crimson","Crimson Editorial","Black & red · Bold typography","PORTFOLIO"],["sunny","Sunny Editorial","Warm cream · Sunshine yellow","SUNNY"],["student3d","Student 3D","Indigo · Playful dimensional layout","STUDENT"],["noirluxe","Noir Luxe Editorial","Black · Burgundy · Beige","NOIR LUXE"]] as const).map(([value,label,desc,art])=><button type="button" key={value} className={`tf-template-card ${theme===value?"selected":""}`} onClick={()=>setTheme(value)} aria-pressed={theme===value}><div className={`tf-template-art ${value}`}><span>{art}</span></div><div className="tf-template-caption"><b>{label} {theme===value?"✓":""}</b><small>{desc}</small></div></button>)}</div>
- {(["sunny","student3d","noirluxe"] as string[]).includes(theme)?<div className="tf-portfolio-new-preview"><ExpansionThemes theme={theme as ExpansionTheme} name={username} headline={profile.headline} bio={profile.bio} location={profile.location} avatar={profile.avatar_url} website={profile.website} skills={skills} projects={galleryProjects.filter(p=>p.is_public)} education={education.map(e=>({institution:e.institution,qualification:e.qualification,field:e.field_of_study,start:e.start_year,end:e.end_year,description:e.description}))} experience={workHistory.map(e=>({company:e.company,role:e.role,start:e.start_date,end:e.end_date,description:e.description}))} certCount={certs.length} preview/></div>:(["amber","neon","crimson"] as string[]).includes(theme)?<div className="tf-portfolio-new-preview"><PortfolioThemes theme={theme as NewTheme} name={username} headline={profile.headline} bio={profile.bio} location={profile.location} avatar={profile.avatar_url} website={profile.website} skills={skills} projects={galleryProjects.filter(p=>p.is_public)} education={education.map(e=>({institution:e.institution,qualification:e.qualification,field:e.field_of_study,start:e.start_year,end:e.end_year,description:e.description}))} experience={workHistory.map(e=>({company:e.company,role:e.role,start:e.start_date,end:e.end_date,description:e.description}))} preview/></div>:<PortfolioPreview name={username} headline={profile.headline} bio={profile.bio} location={profile.location} avatar={profile.avatar_url} theme={theme as "modern"|"minimal"|"tech"} skills={skills} projects={galleryProjects} education={education} experience={workHistory}/>}
- <p className="tf-hint" style={{marginBottom:19}}>Live preview — tukar template di atas, kemudian tekan <strong>Publish Portfolio</strong> untuk menyimpan pilihan pada halaman awam anda.</p>
+
+ {section==="portfolio"&&<>
+ <div className="tf-headingrow">
+  <div><div className="tf-eyebrow">PORTFOLIO PROFESIONAL</div>
+   <h1>Portfolio Builder</h1>
+   <p>Pilih reka bentuk, kawal maklumat awam dan semak semuanya sebelum menerbitkan.</p>
+  </div>
+  {publication?.published&&<a className="tf-btn tf-btn-outline"
+    href={`/u/${publication.slug}`} target="_blank" rel="noopener noreferrer">
+   <ExternalLink size={15}/> Lihat Portfolio Live</a>}
+ </div>
+ {publication?.published?
+  <div className={`tf-publication-status ${hasUnpublishedChanges?"is-dirty":""}`} role="status">
+   <strong><ShieldCheck size={17}/>{hasUnpublishedChanges?"Ada perubahan belum diterbitkan":"Portfolio diterbitkan"}</strong>
+   <span>{hasUnpublishedChanges?"Tekan Publish untuk menerbitkan versi terbaru.":"Maklumat yang diterbitkan sepadan dengan pilihan semasa."}</span>
+  </div>:
+  <div className="tf-publication-status"><strong><Globe2 size={16}/> Belum diterbitkan</strong><span>Hanya anda yang boleh melihat draf ini.</span></div>}
+ <div className="tf-portfolio-controls">
+  <div className="tf-segments">
+   {(["modern","minimal","tech"] as const).map(template=>
+    <button key={template} type="button" className={theme===template?"active":""}
+      aria-pressed={theme===template} onClick={()=>setTheme(template)}>
+      {template[0].toUpperCase()+template.slice(1)}
+    </button>)}
+  </div>
+  <span className="tf-pill"><ShieldCheck size={14}/> Kawalan privasi di tangan anda</span>
+ </div>
+ <div className="tf-template-gallery-heading">✦ Galeri Portfolio — 9 Template Profesional</div>
+ <div className="tf-template-gallery">
+  {([
+   ["amber","Amber Developer","Dark charcoal · Orange glow","DEVFUSION"],
+   ["neon","Neon Cyber","Cyber black · Cyan neon","DevPortfolio"],
+   ["crimson","Crimson Editorial","Black & red · Bold typography","PORTFOLIO"],
+   ["sunny","Sunny Editorial","Warm cream · Sunshine yellow","SUNNY"],
+   ["student3d","Student 3D","Indigo · Dimensi kreatif","STUDENT"],
+   ["noirluxe","Noir Luxe Editorial","Black · Burgundy · Beige","NOIR LUXE"]
+  ] as const).map(([value,label,desc,art])=>
+   <button type="button" key={value} className={`tf-template-card ${theme===value?"selected":""}`}
+    onClick={()=>setTheme(value)} aria-pressed={theme===value}>
+    <div className={`tf-template-art ${value}`}><span>{art}</span></div>
+    <div className="tf-template-caption"><b>{label} {theme===value?"✓":""}</b><small>{desc}</small></div>
+   </button>)}
+ </div>
+ <div className="tf-preview-privacy" role="note">
+  Pratonton ini menggunakan pilihan seksyen semasa. Sijil peribadi dan alamat e-mel tidak akan dipaparkan.
+ </div>
+ {(["sunny","student3d","noirluxe"] as string[]).includes(theme)?
+  <div className="tf-portfolio-new-preview"><ExpansionThemes
+    theme={theme as ExpansionTheme} name={username} headline={profile.headline}
+    bio={profile.bio} location={previewLocation} avatar={profile.avatar_url}
+    website={previewWebsite} skills={previewSkills} projects={previewProjects}
+    education={previewEducation.map(e=>({institution:e.institution,qualification:e.qualification,field:e.field_of_study,start:e.start_year,end:e.end_year,description:e.description}))}
+    experience={previewExperience.map(e=>({company:e.company,role:e.role,start:e.start_date,end:e.end_date,description:e.description}))}
+    certCount={0} openToOpportunities={openToOpportunities} preview/></div>:
+  (["amber","neon","crimson"] as string[]).includes(theme)?
+   <div className="tf-portfolio-new-preview"><PortfolioThemes
+     theme={theme as NewTheme} name={username} headline={profile.headline}
+     bio={profile.bio} location={previewLocation} avatar={profile.avatar_url}
+     website={previewWebsite} skills={previewSkills} projects={previewProjects}
+     education={previewEducation.map(e=>({institution:e.institution,qualification:e.qualification,field:e.field_of_study,start:e.start_year,end:e.end_year,description:e.description}))}
+     experience={previewExperience.map(e=>({company:e.company,role:e.role,start:e.start_date,end:e.end_date,description:e.description}))}
+     openToOpportunities={openToOpportunities} preview/></div>:
+   <PortfolioPreview name={username} headline={profile.headline}
+     bio={profile.bio} location={previewLocation} avatar={profile.avatar_url}
+     theme={theme as "modern"|"minimal"|"tech"} skills={previewSkills}
+     projects={previewProjects} education={previewEducation}
+     experience={previewExperience} openToOpportunities={openToOpportunities}/>
+ }
  <form className="tf-card tf-section tf-form" onSubmit={event=>{
-  event.preventDefault();
-  void run(async()=>{
-    const requestedSlug=slug.toLowerCase().trim();
-    if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug)||
-       requestedSlug.length<3||requestedSlug.length>48){
-      throw new Error("Slug mesti 3–48 aksara, huruf kecil, nombor atau tanda sempang.");
-    }
-    const {error}=await client.rpc("publish_portfolio",{
-      p_slug:requestedSlug,
-      p_template:theme,
-      p_sections:{
-        skills:true,education:true,experience:true,
-        projects:true,location:true,website:true
-      }
-    });
-    if(error){
-      if(error.code==="23505")throw new Error("Slug ini sudah digunakan. Pilih nama pautan lain.");
-      throw error;
-    }
-    setNotice("Portfolio berjaya diterbitkan menggunakan snapshot selamat di pelayan.");
-  });
-}}>
- <div className="tf-card-head"><h3>Publish Your Portfolio</h3><span className="tf-pill">{publication?.published?"Published":"Unpublished"}</span></div><p className="tf-hint">Hanya nama, headline, bio, lokasi, gambar profil, pendidikan, pengalaman, kemahiran dan projek yang dipilih akan diterbitkan. Gambar galeri bagi projek terpilih turut diterbitkan; fail sijil dan alamat e-mel tidak akan dipaparkan. Selepas menukar gambar profil, tekan Publish semula untuk mengemas kini laman awam.</p><label>Public link slug<input required value={slug} onChange={e=>setSlug(nameSlug(e.target.value))} minLength={3} maxLength={48}/></label><small className="tf-muted">talent-portfolio-ai.vercel.app/u/{slug||"your-name"}</small><div className="tf-form-actions"><button className="tf-btn" disabled={busy}><Globe2 size={15}/> Publish Portfolio</button>{publication?.published&&<button className="tf-btn tf-btn-outline" type="button" disabled={busy} onClick={()=>void run(async()=>{const {error}=await client.from("portfolio_publications").update({published:false}).eq("user_id",userId);if(error)throw error;setNotice("Portfolio dinyahterbitkan.")})}><X size={15}/> Unpublish</button>}</div></form></>}
- </>}</main><div className="tf-footer">© {new Date().getFullYear()} Talentfolio AI · Privacy-first portfolio workspace · Free MVP</div></div></div>;
+    event.preventDefault();
+    try{validPortfolioSlug(slug);setNotice("");setPublishConfirmation("publish");}
+    catch(error){setNotice(errText(error));}
+ }}>
+  <div className="tf-card-head">
+   <h3>Kawal Penerbitan Portfolio</h3>
+   <span className="tf-pill">{publication?.published?"Published":"Draft"}</span>
+  </div>
+  <p className="tf-publication-hint">
+   Nama, headline, bio dan foto profil akan kelihatan apabila portfolio diterbitkan.
+   Pilih seksyen lain yang ingin dikongsi. Fail sijil peribadi dan e-mel akaun kekal tersembunyi.
+  </p>
+  <h4>Pilih maklumat yang akan dipaparkan</h4>
+  <div className="tf-publish-options">
+   {PUBLIC_SECTIONS.map(([key,label])=>
+    <label className="tf-publish-option" key={key}>
+     <input type="checkbox" checked={publicSections[key]}
+      onChange={event=>setPublicSections(previous=>({...previous,[key]:event.target.checked}))}/>
+     <span>{label}</span>
+    </label>)}
+  </div>
+  <label>Nama pautan portfolio
+   <input required value={slug} onChange={event=>setSlug(nameSlug(event.target.value))}
+    minLength={3} maxLength={48}/>
+  </label>
+  <span className="tf-publish-url">https://talent-portfolio-ai.vercel.app/u/{slug||"nama-anda"}</span>
+  <div className="tf-publish-privacy">
+   <label><input type="checkbox" checked={openToOpportunities}
+     onChange={event=>setOpenToOpportunities(event.target.checked)}/>
+    Paparkan saya terbuka kepada peluang kerjaya dan kolaborasi
+   </label>
+   <label><input type="checkbox" checked={noindex}
+     onChange={event=>setNoindex(event.target.checked)}/>
+    Jangan indeks portfolio saya di Google dan enjin carian lain
+   </label>
+   <p>Pautan awam masih boleh dibuka oleh sesiapa yang mempunyai URL. Opsyen noindex meminta enjin carian tidak mengindeks, bukan menjadikan portfolio peribadi.</p>
+  </div>
+  <div className="tf-form-actions">
+   <button className="tf-btn" type="submit" disabled={busy}>
+    <Globe2 size={15}/>{publication?.published?"Terbitkan Perubahan":"Publish Portfolio"}
+   </button>
+   {publication?.published&&<button type="button" className="tf-btn tf-btn-outline"
+     disabled={busy} onClick={()=>setPublishConfirmation("unpublish")}>
+    <X size={15}/> Nyahterbit Portfolio
+   </button>}
+  </div>
+ </form>
+ </>}
+
+ </>}</main>
+ <ConfirmDialog
+  open={publishConfirmation!==null}
+  title={publishConfirmation==="publish"?"Sahkan penerbitan portfolio":"Nyahterbit portfolio?"}
+  description={publishConfirmation==="publish"
+   ?"Sila semak pautan dan maklumat awam di bawah sebelum menerbitkan."
+   :"Portfolio awam tidak lagi boleh dibuka. Maklumat peribadi anda akan kekal disimpan dalam akaun."}
+  confirmLabel={publishConfirmation==="publish"?"Ya, Terbitkan":"Ya, Nyahterbit"}
+  danger={publishConfirmation==="unpublish"}
+  busy={busy}
+  onClose={()=>setPublishConfirmation(null)}
+  onConfirm={()=>void confirmPublishing()}
+ >
+  {publishConfirmation==="publish"&&<>
+   <strong>URL Portfolio</strong>
+   <span className="tf-publish-url">https://talent-portfolio-ai.vercel.app/u/{slug}</span>
+   <div className="tf-publish-section-summary">
+    <span><CheckCircle2 size={15}/> Nama, headline, bio dan foto profil</span>
+    {PUBLIC_SECTIONS.filter(([key])=>publicSections[key]).map(([key,label])=>
+     <span key={key}><CheckCircle2 size={15}/>{label}</span>)}
+   </div>
+   <p className="tf-publication-hint">Tidak termasuk sijil peribadi atau e-mel akaun. {noindex?"Enjin carian diminta untuk tidak mengindeks halaman ini.":"Halaman boleh diindeks oleh enjin carian."}</p>
+  </>}
+ </ConfirmDialog>
+ <div className="tf-footer">© {new Date().getFullYear()} Talentfolio AI · Privacy-first portfolio workspace · Free MVP</div></div></div>;
 }
