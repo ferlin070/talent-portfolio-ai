@@ -55,3 +55,35 @@ test("career report exports real PDF and editable DOCX with identical synthetic 
  expect(pdfText.stdout).not.toContain("TAMAT_LAPORAN");
  expect(inspected.stdout).not.toContain("TAMAT_LAPORAN");
 });
+
+test("Resume Studio prints all three templates and blocks failed data loads",async({page})=>{
+ test.setTimeout(90000);
+ const mockDb='const failed=()=>location.search.includes("fail=1");const rows={profiles:{display_name:"TALENTCV Name",headline:"QA Engineer",bio:"TALENTCV Summary"},skills:[{id:"s1",name:"TALENTCV Skill",self_rating:3}],projects:[{id:"p1",title:"TALENTCV Project",description:"Synthetic evidence",url:"javascript:alert(1)"}],education:[],work_experience:[],project_images:[]};export function getSupabaseClient(){return {auth:{getUser:async()=>({data:{user:{id:"qa-id",email:"qa@example.invalid"}},error:null})},from(table){const result=()=>({data:rows[table],error:failed()?{message:"fixture failure"}:null});return {select(){return this},eq(){return this},order:async()=>result(),maybeSingle:async()=>result()}}}}';
+ const bundle=await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Resume from "./app/resume/page";createRoot(document.getElementById("qa")).render(<Resume/>);',loader:"tsx",resolveDir:process.cwd()},bundle:true,write:false,format:"iife",platform:"browser",jsx:"automatic",define:{"process.env.NODE_ENV":'"production"'},plugins:[{name:"resume-fixture",setup(b){b.onResolve({filter:/^@\/lib\/supabase$/},()=>({path:"db",namespace:"fixture"}));b.onResolve({filter:/^next\/link$/},()=>({path:"link",namespace:"fixture"}));b.onLoad({filter:/.*/,namespace:"fixture"},({path})=>({contents:path==="db"?mockDb:'import React from "react";export default function Link(props){return React.createElement("a",props)}',loader:"js",resolveDir:process.cwd()}));}}]});
+ const css=readFileSync("app/quality-fixes.css","utf8");
+ await page.route(origin+"/__qa_resume**",route=>route.fulfill({contentType:"text/html",body:'<!doctype html><html><head><style>'+css+'</style></head><body><div id="qa"></div><script src="/__qa_cv_bundle.js"></script></body></html>'}));
+ await page.route(origin+"/__qa_cv_bundle.js",route=>route.fulfill({contentType:"application/javascript",body:bundle.outputFiles[0].text}));
+ await page.goto(origin+"/__qa_resume");
+ await expect(page.getByRole("heading",{name:"TALENTCV Name"})).toBeVisible();
+ await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
+ const print=page.getByRole("button",{name:"Print / Save as PDF"});
+ await expect(print).toBeEnabled();
+ await page.evaluate(()=>{window.print=()=>{document.body.dataset.cvPrinted="yes"}});
+ await print.click();
+ await expect(page.locator("body")).toHaveAttribute("data-cv-printed","yes");
+ await page.getByLabel("Gambar profil").uncheck();
+ await expect(page.locator(".tf-cv-portrait")).toHaveCount(0);
+ for(const name of ["Executive","Modern","Creative"]){
+  await page.getByRole("button",{name:new RegExp(name)}).click();
+  await expect(page.locator(".tf-resume-document")).toHaveClass(new RegExp("tf-resume-"+name.toLowerCase()));
+  const pdf=await page.pdf({preferCSSPageSize:true,printBackground:true});
+  expect(pdf.subarray(0,5).toString()).toBe("%PDF-");
+  const result=spawnSync("pdftotext",["-","-"],{input:pdf,encoding:"utf8"});
+  expect(result.status,result.stderr).toBe(0);
+  for(const token of ["TALENTCV Name","TALENTCV Skill","TALENTCV Project"])expect(result.stdout.replace(/\s+/g," ")).toContain(token);
+  expect(result.stdout).not.toContain("Print / Save as PDF");
+ }
+ await page.goto(origin+"/__qa_resume?fail=1");
+ await expect(page.getByRole("alert")).toBeVisible();
+ await expect(print).toBeDisabled();
+});
