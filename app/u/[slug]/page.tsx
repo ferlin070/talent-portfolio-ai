@@ -22,12 +22,21 @@ function validAvatar(raw:string){
  try {const u=new URL(raw);const project=new URL(base);return u.origin===project.origin&&u.pathname.startsWith("/storage/v1/object/public/profile-photos/")?raw:null} catch{return null}
 }
 async function fetchPortfolio(slug:string):Promise<Portfolio>{
- if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>48)notFound();
+ if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length<3||slug.length>48)notFound();
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  if(!url||!key)throw new Error("Public portfolio database configuration is missing");
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data,error}=await db.rpc("get_published_portfolio_seo",{p_slug:slug});
- if(error||!Array.isArray(data)||data.length!==1)notFound();
+ if(error){
+  // Do not misreport a database/schema outage as an unpublished portfolio.
+  console.error("[public-portfolio] lookup failed", {code:error.code});
+  throw new Error("Public portfolio lookup temporarily unavailable");
+ }
+ if(!Array.isArray(data)||data.length>1){
+  console.error("[public-portfolio] unexpected RPC response");
+  throw new Error("Public portfolio lookup temporarily unavailable");
+ }
+ if(data.length===0)notFound();
  const published=data[0] as Portfolio;
  return {slug:published.slug,template:published.template,snapshot:published.snapshot||{},noindex:published.noindex===true,updated_at:published.updated_at};
 }
@@ -68,7 +77,7 @@ export default async function PublicPortfolio({params}:{params:Promise<{slug:str
  const {slug}=await params;
  const portfolio=await fetchPortfolio(slug);
  const s=portfolio.snapshot;
- const name=s.name?.trim()||"Professional Portfolio",first=name.split(" ")[0];
+ const name=s.name?.trim()||"Professional Portfolio";
  const projects=Array.isArray(s.projects)?s.projects:[];
  const skills=Array.isArray(s.skills)?s.skills:[];
  const educations=Array.isArray(s.education)?s.education:[];
