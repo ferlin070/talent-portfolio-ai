@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:phase2": "node --experimental-strip-types --test tests/phase2-core.test.mjs"
   },
   "dependencies": {
     "next": "^15.5.0",
