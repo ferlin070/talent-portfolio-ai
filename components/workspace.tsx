@@ -53,6 +53,7 @@ export default function Workspace(){
  useEffect(()=>{
   if(!mobile)return;
   const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  const menuTrigger=menuButtonRef.current;
   const priorOverflow=document.body.style.overflow;
   document.body.style.overflow="hidden";
   sidebarRef.current?.querySelector<HTMLButtonElement>(".tf-mobile-close")?.focus();
@@ -81,7 +82,7 @@ export default function Workspace(){
    desktop.removeEventListener("change",onDesktop);
    document.removeEventListener("keydown",onKeydown);
    if(previous?.isConnected)previous.focus();
-   else menuButtonRef.current?.focus();
+   else menuTrigger?.focus();
   };
  },[mobile]);
 
