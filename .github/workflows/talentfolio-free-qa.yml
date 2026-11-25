@@ -60,12 +60,12 @@ jobs:
         run: |
           set -euo pipefail
           psql_local() { sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d talentfolio_ci "$@"; }
-          psql_local -f "$PWD/tests/phase4-postgres-harness.sql"
+          psql_local < "$PWD/tests/phase4-postgres-harness.sql"
           for migration in supabase/migrations/*.sql; do
             echo "Applying $migration"
-            psql_local -f "$PWD/$migration"
+            psql_local < "$PWD/$migration"
           done
-          psql_local -f "$PWD/tests/phase4-local-db.sql"
+          psql_local < "$PWD/tests/phase4-local-db.sql"
       - name: Drop disposable database
         if: always()
         run: sudo -u postgres dropdb --if-exists talentfolio_ci
