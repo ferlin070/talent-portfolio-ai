@@ -74,6 +74,15 @@ BEGIN
   END IF;
 END$$;
 
+-- Gallery paths must belong to the expected project, not just the account.
+DO $
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='tf_gallery_path_project') THEN
+    ALTER TABLE public.project_images ADD CONSTRAINT tf_gallery_path_project
+      CHECK (storage_path LIKE user_id::text || '/' || project_id::text || '/%');
+  END IF;
+END$;
+
 -- 1.5: Prevent duplicate skill names by case-insensitive owner+name.
 CREATE UNIQUE INDEX IF NOT EXISTS tf_skills_owner_name_ci
   ON public.skills (user_id, lower(btrim(name)));
@@ -108,25 +117,46 @@ DROP TRIGGER IF EXISTS tf_certificate_quota_insert ON public.certificates;
 CREATE TRIGGER tf_certificate_quota_insert BEFORE INSERT ON public.certificates
   FOR EACH ROW EXECUTE FUNCTION public.tf_certificate_quota();
 
--- Cap avatar storage at five files/user; profile editor usually removes old photo.
-CREATE OR REPLACE FUNCTION public.tf_profile_storage_quota()
+-- Enforce quotas on Storage objects too, so files cannot bypass metadata checks.
+-- Five avatar photos/user, 30 certificate files/user, 12 gallery files/project.
+CREATE OR REPLACE FUNCTION public.tf_storage_object_quota()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE owner_folder text;
+DECLARE
+ owner_folder text;
+ project_folder text;
+ quota_prefix text;
+ max_files integer;
 BEGIN
-  IF NEW.bucket_id <> 'profile-photos' THEN RETURN NEW; END IF;
-  owner_folder := split_part(NEW.name,'/',1);
-  PERFORM pg_advisory_xact_lock(hashtext('avatar:' || owner_folder));
-  IF (SELECT count(*) FROM storage.objects
-      WHERE bucket_id='profile-photos' AND split_part(name,'/',1)=owner_folder) >= 5 THEN
-    RAISE EXCEPTION 'Maksimum lima fail gambar profil setiap pengguna.' USING ERRCODE='23514';
-  END IF;
-  RETURN NEW;
+ IF NEW.bucket_id NOT IN ('profile-photos','certificates','project-gallery') THEN
+   RETURN NEW;
+ END IF;
+ owner_folder := split_part(NEW.name,'/',1);
+ project_folder := split_part(NEW.name,'/',2);
+ IF owner_folder = '' OR owner_folder !~ '^[0-9a-f-]{36}$' THEN
+   RAISE EXCEPTION 'Laluan fail tidak sah.' USING ERRCODE='23514';
+ END IF;
+ IF NEW.bucket_id='project-gallery' THEN
+   IF project_folder !~ '^[0-9a-f-]{36}$' OR split_part(NEW.name,'/',3)='' THEN
+     RAISE EXCEPTION 'Laluan gambar projek mesti mempunyai folder projek.' USING ERRCODE='23514';
+   END IF;
+   quota_prefix:=owner_folder||'/'||project_folder||'/';
+   max_files:=12;
+ ELSE
+   quota_prefix:=owner_folder||'/';
+   max_files:=CASE WHEN NEW.bucket_id='certificates' THEN 30 ELSE 5 END;
+ END IF;
+ PERFORM pg_advisory_xact_lock(hashtext('storage:'||NEW.bucket_id||':'||quota_prefix));
+ IF (SELECT count(*) FROM storage.objects
+     WHERE bucket_id=NEW.bucket_id AND name LIKE quota_prefix||'%') >= max_files THEN
+   RAISE EXCEPTION 'Had bilangan fail untuk folder ini telah dicapai.' USING ERRCODE='23514';
+ END IF;
+ RETURN NEW;
 END; $$;
-REVOKE ALL ON FUNCTION public.tf_profile_storage_quota() FROM PUBLIC;
-DROP TRIGGER IF EXISTS tf_profile_storage_quota_insert ON storage.objects;
-CREATE TRIGGER tf_profile_storage_quota_insert BEFORE INSERT ON storage.objects
-  FOR EACH ROW WHEN (NEW.bucket_id = 'profile-photos')
-  EXECUTE FUNCTION public.tf_profile_storage_quota();
+REVOKE ALL ON FUNCTION public.tf_storage_object_quota() FROM PUBLIC;
+DROP TRIGGER IF EXISTS tf_storage_object_quota_insert ON storage.objects;
+CREATE TRIGGER tf_storage_object_quota_insert BEFORE INSERT ON storage.objects
+ FOR EACH ROW WHEN (NEW.bucket_id IN ('profile-photos','certificates','project-gallery'))
+ EXECUTE FUNCTION public.tf_storage_object_quota();
 
 -- 1.2: A server-side, owner-scoped snapshot builder (never trust a browser snapshot).
 ALTER TABLE public.portfolio_publications
