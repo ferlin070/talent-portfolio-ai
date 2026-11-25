@@ -18,10 +18,14 @@ function failure(message: string, status: number) {
  * This handles nested gallery folders and storage pagination.
  */
 async function removeUserFiles(
-  admin: ReturnType<typeof createClient>,
   bucket: string,
   userId: string,
+  url: string,
+  serviceKey: string,
 ) {
+  const admin = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const paths: string[] = [];
   const visited = new Set<string>();
 
@@ -47,7 +51,7 @@ async function removeUserFiles(
         if (!path.startsWith(`${userId}/`)) {
           throw new Error("Lokasi Storage tidak selamat.");
         }
-        if (entry.id === null) {
+        if (!entry.id) {
           await collect(path, depth + 1);
         } else {
           paths.push(path);
@@ -123,7 +127,7 @@ export async function POST(request: NextRequest) {
 
   try {
     for (const bucket of ["certificates", "profile-photos", "project-gallery"]) {
-      await removeUserFiles(admin, bucket, data.user.id);
+      await removeUserFiles(bucket, data.user.id, url, serviceKey);
     }
 
     // Auth FK cascades remove user-owned rows; cleanup queue preserves any
