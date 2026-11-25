@@ -55,14 +55,16 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
   const session=checked(await owner.auth.getSession(),"owner session").session;
   const headers={authorization:"Bearer "+session.access_token,origin};
   const endpoint=origin+"/api/portfolio/publish";
-  expect((await request.post(endpoint,{headers,data:"null"})).status()).toBe(400);
+  const invalid=await request.post(endpoint,{headers,data:"null"});
+  expect(invalid.status(),await invalid.text()).toBe(400);
+  expect((await request.post(endpoint,{headers:{...headers,origin:"https://untrusted.example"},data:{action:"publish"}})).status()).toBe(403);
   expect((await request.post(endpoint,{data:{action:"publish"}})).status()).toBe(401);
   const publicPage=await publicContext.newPage();
   let previous=null;
   for(const template of themes){
    const slug="tf-qa-"+suffix+"-"+template;
    const publish=await request.post(endpoint,{headers,data:{action:"publish",slug,template,sections,noindex:true,openToOpportunities:false}});
-   expect(publish.status(),"publish "+template).toBe(200);
+   expect(publish.status(),"publish "+template+": "+await publish.text()).toBe(200);
    const record=checked(await anon.rpc("get_published_portfolio_seo",{p_slug:slug}),"public lookup");
    expect(record).toHaveLength(1);
    expect(record[0].template).toBe(template);
