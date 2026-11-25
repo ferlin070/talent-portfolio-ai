@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import {
   BriefcaseBusiness, CheckCircle2, ChevronRight, CircleUserRound,
   GraduationCap, Layers3, Sparkles, TrendingUp,
