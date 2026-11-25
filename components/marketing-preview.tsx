@@ -6,7 +6,7 @@ import {
 
 /** Illustrative product view, never presented as a real user's data. */
 export default function MarketingPreview(){
- return <div className="tf-marketing-demo" aria-label="Contoh antaramuka Talentfolio AI">
+ return <div className="tf-marketing-demo" role="img" aria-label="Ilustrasi contoh antaramuka Talentfolio AI, bukan data akaun pengguna sebenar">
   <div className="tf-marketing-demo-window">
    <div className="tf-marketing-demo-bar">
     <span className="tf-demo-dots" aria-hidden="true"><i/><i/><i/></span>
