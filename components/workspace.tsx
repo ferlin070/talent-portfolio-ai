@@ -384,6 +384,7 @@ export default function Workspace(){
    <div className="tf-portfolio-new-preview">
     <PublicPortfolioClassic
      template={theme}
+     preview
      s={draftSnapshot}
      avatar={profile.avatar_url}
      website={previewWebsite}
