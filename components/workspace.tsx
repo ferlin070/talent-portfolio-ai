@@ -106,47 +106,43 @@ export default function Workspace(){
  const previewLocation=publicSections.location?profile.location:"";
  const previewWebsite=publicSections.website?profile.website:"";
 
- async function revalidatePublishedPortfolio(publishedSlug:string){
-  try{
-   const {data:{session}}=await client.auth.getSession();
-   if(!session)return;
-   await fetch("/api/portfolio/revalidate",{
-    method:"POST",
-    headers:{"content-type":"application/json",Authorization:`Bearer ${session.access_token}`},
-    body:JSON.stringify({slug:publishedSlug})
-   });
-  }catch{
-   // Publishing is authoritative at the DB; ISR cache falls back to its TTL.
+ async function sendPublicationAction(payload:Record<string,unknown>){
+  const {data:{session},error:sessionError}=await client.auth.getSession();
+  if(sessionError||!session)throw new Error("Sila log masuk semula.");
+
+  const response=await fetch("/api/portfolio/publish",{
+   method:"POST",
+   cache:"no-store",
+   headers:{"content-type":"application/json",Authorization:`Bearer ${session.access_token}`},
+   body:JSON.stringify(payload)
+  });
+
+  const data=await response.json() as {ok?:boolean;error?:string};
+  if(!response.ok||!data.ok){
+   throw new Error(data.error||"Operasi penerbitan gagal.");
   }
  }
 
  async function confirmPublishing(){
   const action=publishConfirmation;
   setPublishConfirmation(null);
+
   if(action==="publish"){
    await run(async()=>{
-    const requestedSlug=validPortfolioSlug(slug);
-    const previousSlug=publication?.slug;
-    const {error}=await client.rpc("publish_portfolio_v2",{
-     p_slug:requestedSlug,p_template:theme,p_sections:publicSections,
-     p_noindex:noindex,p_open_to_opportunities:openToOpportunities
+    await sendPublicationAction({
+     action:"publish",
+     slug:validPortfolioSlug(slug),
+     template:theme,
+     sections:publicSections,
+     noindex,
+     openToOpportunities
     });
-    if(error){
-     if(error.code==="23505")throw new Error("Nama pautan sudah digunakan. Pilih nama lain.");
-     throw new Error(error.message);
-    }
-    await revalidatePublishedPortfolio(requestedSlug);
-    if(previousSlug&&previousSlug!==requestedSlug)await revalidatePublishedPortfolio(previousSlug);
-    setNotice("Portfolio diterbitkan. Pilihan seksyen yang dipilih kini tersedia pada pautan awam.");
+    setNotice("Portfolio diterbitkan dengan pilihan maklumat awam yang ditetapkan.");
    });
   }else if(action==="unpublish"&&publication){
    await run(async()=>{
-    const previousSlug=publication.slug;
-    const {error}=await client.from("portfolio_publications")
-     .update({published:false}).eq("user_id",userId);
-    if(error)throw error;
-    await revalidatePublishedPortfolio(previousSlug);
-    setNotice("Portfolio dinyahterbitkan; pautan awam tidak lagi tersedia.");
+    await sendPublicationAction({action:"unpublish"});
+    setNotice("Portfolio berjaya dinyahterbitkan.");
    });
   }
  }
