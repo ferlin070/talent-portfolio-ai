@@ -40,8 +40,9 @@ jobs:
         run: npm run build
       - name: Install browser test runner in disposable CI
         run: |
-          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.56.1
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.56.1 esbuild@0.25.12
           npx playwright install --with-deps chromium
+          if ! command -v pdftotext >/dev/null; then sudo apt-get update && sudo apt-get install -y poppler-utils; fi
       - name: Run public and auth browser smoke tests on localhost
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -56,7 +57,7 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:3000/ > /dev/null
-          npx playwright test tests/phase4-browser.spec.mjs --workers=1 --reporter=line
+          npx playwright test tests/phase4-browser.spec.mjs tests/phase4-export.spec.mjs --workers=1 --reporter=line
   native-postgres-qa:
     if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false
     runs-on: ubuntu-24.04
