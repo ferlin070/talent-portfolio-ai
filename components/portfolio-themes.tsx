@@ -40,7 +40,7 @@ function Amber({p}:{p:ThemeProps}){
 }
 
 function Neon({p}:{p:ThemeProps}){
- return <div className="tpl tpl-neon" id="top"><div className="tpl-neon-orb"/>
+ return <div className="tpl tpl-neon" id="top">{!p.preview&&<span id="tf-main-content" className="tf-skip-anchor" tabIndex={-1}/>}<div className="tpl-neon-orb"/>
  <Header theme="neon" name={p.name} website={p.website}/>
  <section className="tpl-neon-hero"><div className="tpl-neon-copy">{p.openToOpportunities&&<span className="tpl-neon-badge"><span/> AVAILABLE FOR OPPORTUNITIES</span>}<h1>Hi, I&apos;m<br/><em>{p.name||"Your Name"}</em><span className="tpl-caret">|</span></h1><h2>{p.headline||"Full Stack Web Developer"}</h2><p>{p.bio||"I craft fast, modern and scalable experiences with clean code and great user interfaces."}</p><div className="tpl-actions"><a href="#projects" className="tpl-primary">View My Work <ArrowUpRight size={16}/></a><a href="#skills" className="tpl-outline">My Skills <ArrowDown size={16}/></a></div><div className="tpl-scroll"><ArrowDown size={18}/> SCROLL TO EXPLORE</div></div>
  <div className="tpl-neon-visual"><div className="tpl-neon-halo"/><Portrait avatar={p.avatar} name={p.name}/><div className="tpl-neon-laptop"><div className="tpl-neon-laptop-screen"><div className="tpl-code-bars">{Array.from({length:9},(_,i)=><span key={i} style={{width:`${35+(i*19)%60}%`}}/>)}</div><div className="tpl-code-symbol">⬡</div></div><div className="tpl-neon-keyboard"/></div><div className="tpl-neon-stats"><div><strong>{p.experience.length}+</strong><span>Career roles</span></div><div><strong>{p.projects.length}+</strong><span>Projects built</span></div><div><strong>{p.skills.length}+</strong><span>Skills listed</span></div></div></div></section>
