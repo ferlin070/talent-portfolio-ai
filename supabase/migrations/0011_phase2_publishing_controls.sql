@@ -88,7 +88,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.publish_portfolio_v2(text,text,jsonb,boolean,boolean)
-  FROM PUBLIC;
+  FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.publish_portfolio_v2(text,text,jsonb,boolean,boolean)
   TO authenticated;
 
@@ -116,4 +116,5 @@ $$;
 REVOKE ALL ON FUNCTION public.get_published_portfolio_seo(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_published_portfolio_seo(text) TO anon, authenticated;
 
+REVOKE ALL ON FUNCTION public.tf_publication_guard() FROM PUBLIC, anon, authenticated;
 COMMIT;
