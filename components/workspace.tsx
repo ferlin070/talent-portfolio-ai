@@ -15,20 +15,20 @@ import ProjectGalleryEditor,{type GalleryImage} from "@/components/project-galle
 import SkillEditor from "@/components/skill-editor";
 import AIAnalysis from "@/components/ai-skills-analysis";
 import PromptGenerator from "@/components/prompt-generator";
+import ConfirmDialog from "@/components/confirm-dialog";
+import {CAREER_TARGETS, measureCareerTarget} from "@/lib/career-targets";
+import {PUBLIC_SECTIONS, DEFAULT_PUBLIC_SECTIONS, normalizeSections, buildDraftSnapshot, visualFingerprint, snapshotFingerprint, validPortfolioSlug, type PortfolioSections} from "@/lib/portfolio-publishing";
 
 type Profile = { display_name:string; user_type:"student"|"worker"; headline:string; bio:string; website:string; location:string; avatar_url:string; is_public:boolean };
 type Project = { id:string; title:string; description:string; url:string|null; is_public:boolean; created_at:string };
 type Certificate = {id:string;name:string;issuer:string|null;issued_on:string|null;expires_on:string|null;storage_path:string|null;verification_status:string;created_at:string};
 type Skill = {id:string;name:string;self_rating:number|null;created_at:string};
-type Education={id:string;institution:string;qualification:string;field_of_study:string;start_year:number|null;end_year:number|null;description:string};
-type Work={id:string;company:string;role:string;start_date:string|null;end_date:string|null;description:string};
+type Education={id:string;institution:string;qualification:string;field_of_study:string;start_year:number|null;end_year:number|null;description:string;created_at:string};
+type Work={id:string;company:string;role:string;start_date:string|null;end_date:string;description:string;created_at:string};
 type PortfolioTheme = "modern"|"minimal"|"tech"|"amber"|"neon"|"crimson"|"sunny"|"student3d"|"noirluxe";
-type Publication = {slug:string;template:PortfolioTheme;published:boolean;updated_at:string};
+type Publication = {slug:string;template:PortfolioTheme;published:boolean;updated_at:string;sections:PortfolioSections;noindex:boolean;open_to_opportunities:boolean;snapshot:unknown};
 const empty:Profile={display_name:"",user_type:"student",headline:"",bio:"",website:"",location:"",avatar_url:"",is_public:false};
 const paths=[["/dashboard","Dashboard",LayoutDashboard],["/portfolio","Portfolio Builder",Globe2],["/projects","Projects",FolderKanban],["/education","Education",GraduationCap],["/experience","Work Experience",BriefcaseBusiness],["/resume","Resume Builder",FileUser],["/certificates","Certificate Vault",Award],["/skills","Skills Analysis",ChartNoAxesCombined],["/profile","My Profile",UserRound],["/settings","Settings",Settings],["/prompt-generator","Prompt Generator",WandSparkles]] as const;
-const goals=[{value:"fullstack",label:"Full Stack Developer",targets:[5,4,4,4,4]},{value:"cloud",label:"Cloud Engineer",targets:[3,5,4,4,4]},{value:"data",label:"Data Analyst",targets:[3,3,5,4,4]}];
-const categoriesByRole:Record<string,string[]>={fullstack:["Web Development","JavaScript","React","Database","Git"],cloud:["Cloud Computing","Linux","Networking","Docker","Security"],data:["SQL","Python","Data Analysis","Statistics","Data Visualization"]};
-const aliases:Record<string,string[]>={"Cloud Computing":["aws","azure","cloud","proxmox","gcp"],"Security":["cyber","zero trust","security","firewall"],"Database":["sql","postgres","database","mongodb","mysql"],"Web Development":["web development","next","react","frontend","backend"],"Data Visualization":["power bi","tableau","dashboard","visualization"],"Git":["git","github"],"Data Analysis":["analytics","analysis","data analyst"]};
 const nameSlug=(s:string)=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48);
 const onlyHttp=(v:string)=>{try{const u=new URL(v);return ["https:","http:"].includes(u.protocol)?u.toString():null}catch{return null}};
 const errText=(e:unknown)=>e instanceof Error?e.message:"Ralat tidak dijangka. Cuba lagi.";
@@ -45,42 +45,117 @@ export default function Workspace(){
  const [theme,setTheme]=useState<PortfolioTheme>("modern"),[slug,setSlug]=useState(""),[role,setRole]=useState("fullstack"),[filter,setFilter]=useState("all"),[q,setQ]=useState("");
  const [certForm,setCertForm]=useState({name:"",issuer:"",issued_on:""}),[certFile,setCertFile]=useState<File|null>(null);
  const [projectForm,setProjectForm]=useState({title:"",description:"",url:"",is_public:true});
+ const [publicSections,setPublicSections]=useState<PortfolioSections>(DEFAULT_PUBLIC_SECTIONS);
+ const [noindex,setNoindex]=useState(false);
+ const [openToOpportunities,setOpenToOpportunities]=useState(false);
+ const [publishConfirmation,setPublishConfirmation]=useState<"publish"|"unpublish"|null>(null);
+
  const refresh=useCallback(async (uid:string)=>{
    const [p,j,c,s,pub,ed,w,gallery]=await Promise.all([
     client.from("profiles").select("display_name,user_type,headline,bio,website,location,avatar_url,is_public").eq("user_id",uid).maybeSingle(),
     client.from("projects").select("id,title,description,url,is_public,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
     client.from("certificates").select("id,name,issuer,issued_on,expires_on,storage_path,verification_status,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
     client.from("skills").select("id,name,self_rating,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
-    client.from("portfolio_publications").select("slug,template,published,updated_at").eq("user_id",uid).maybeSingle(),
-    client.from("education").select("id,institution,qualification,field_of_study,start_year,end_year,description").eq("user_id",uid).order("created_at",{ascending:false}),
-    client.from("work_experience").select("id,company,role,start_date,end_date,description").eq("user_id",uid).order("created_at",{ascending:false}),
+    client.from("portfolio_publications").select("slug,template,published,updated_at,sections,noindex,open_to_opportunities,snapshot").eq("user_id",uid).maybeSingle(),
+    client.from("education").select("id,institution,qualification,field_of_study,start_year,end_year,description,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
+    client.from("work_experience").select("id,company,role,start_date,end_date,description,created_at").eq("user_id",uid).order("created_at",{ascending:false}),
     client.from("project_images").select("id,project_id,user_id,storage_path,caption,sort_order,is_cover,created_at").eq("user_id",uid).order("sort_order",{ascending:true})
    ]);
    const errors=[p.error,j.error,c.error,s.error,pub.error,ed.error,w.error,gallery.error].filter(Boolean);if(errors.length)throw new Error(errors[0]?.message);
    setProfile({...empty,...p.data} as Profile);setProjects((j.data||[]) as Project[]);setCerts((c.data||[]) as Certificate[]);setSkills((s.data||[]) as Skill[]);setEducation((ed.data||[]) as Education[]);setWorkHistory((w.data||[]) as Work[]);setProjectImages((gallery.data||[]) as GalleryImage[]);
    setPublication(pub.data as Publication|null);
+   setPublicSections(normalizeSections(pub.data?.sections));
+   setNoindex(pub.data?.noindex===true);
+   setOpenToOpportunities(pub.data?.open_to_opportunities===true);
    setTheme((pub.data?.template||"modern") as PortfolioTheme);setSlug(pub.data?.slug||nameSlug(p.data?.display_name||""));
  },[client]);
  useEffect(()=>{let active=true;(async()=>{try{const {data,error}=await client.auth.getUser();if(error)throw error;if(!active)return;
   if(data.user){setUserId(data.user.id);setEmail(data.user.email||"");await refresh(data.user.id);const {data:settings,error:settingsError}=await client.from("dashboard_preferences").select("theme").eq("user_id",data.user.id).maybeSingle();if(settingsError)throw settingsError;if(active)setDashboardTheme(settings?.theme==="neumorph"?"neumorph":"default");}
  }catch(e){if(active)setNotice(errText(e));}finally{if(active)setLoading(false)}})();return()=>{active=false};},[client,refresh]);
  async function run(action:()=>Promise<void>){setBusy(true);setNotice("");try{await action();if(userId)await refresh(userId)}catch(e){setNotice(errText(e))}finally{setBusy(false)}}
- const completion=[!!profile.display_name,!!profile.headline,!!profile.bio,projects.length>0,skills.length>0,certs.length>0].filter(Boolean).length/6*100;
- const measured=(categoriesByRole[role]||categoriesByRole.fullstack).map((label)=>{
- const keys=[label.toLowerCase(),...(aliases[label]||[])];
- const scores=skills.filter(x=>keys.some(k=>x.name.toLowerCase().includes(k)||k.includes(x.name.toLowerCase()))).map(x=>x.self_rating||0);
- return {label,score:scores.length?Math.max(...scores):0};
- });
- const desired=goals.find(x=>x.value===role)||goals[0];
- const gaps=measured.map((x,i)=>({...x,target:desired.targets[i],gap:desired.targets[i]-x.score})).sort((a,b)=>b.gap-a.gap);
+ const completenessFactors=[
+  !!profile.display_name,!!profile.headline,!!profile.bio,
+  !!profile.avatar_url,!!profile.website,projects.length>0,
+  skills.length>0,certs.length>0,education.length>0,workHistory.length>0
+ ];
+ const completion=completenessFactors.filter(Boolean).length/completenessFactors.length*100;
+ const desired=CAREER_TARGETS.find(item=>item.id===role)||CAREER_TARGETS[0];
+ const gaps=measureCareerTarget(desired,skills).sort((a,b)=>b.gap-a.gap);
  const pageTitle={dashboard:"Dashboard",portfolio:"Portfolio Builder",projects:"My Projects",education:"Education",experience:"Work Experience",certificates:"Certificate Vault",skills:"Skills Intelligence",profile:"My Profile",prompt:"Prompt Generator"}[section];
  const username=profile.display_name||email?.split("@")[0]||"Pengguna";
  const galleryProjects=projects.map(p=>({...p,images:projectImages.filter(im=>im.project_id===p.id).sort((a,b)=>a.sort_order-b.sort_order).map(im=>({url:client.storage.from("project-gallery").getPublicUrl(im.storage_path).data.publicUrl,caption:im.caption,is_cover:im.is_cover}))}));
+ const draftSnapshot=buildDraftSnapshot({
+  profile,sections:publicSections,skills,projects,
+  projectImages,education,experience:workHistory,openToOpportunities
+ });
+ const draftHash=visualFingerprint({
+  slug:slug.toLowerCase().trim(),template:theme,
+  noindex,sections:publicSections,
+  snapshot:snapshotFingerprint(draftSnapshot)
+ });
+ const publishedHash=publication?visualFingerprint({
+  slug:publication.slug,template:publication.template,
+  noindex:publication.noindex,sections:normalizeSections(publication.sections),
+  snapshot:snapshotFingerprint(publication.snapshot)
+ }):null;
+ const hasUnpublishedChanges=!!publication?.published&&draftHash!==publishedHash;
+ const previewProjects=publicSections.projects?galleryProjects.filter(p=>p.is_public):[];
+ const previewSkills=publicSections.skills?skills:[];
+ const previewEducation=publicSections.education?education:[];
+ const previewExperience=publicSections.experience?workHistory:[];
+ const previewLocation=publicSections.location?profile.location:"";
+ const previewWebsite=publicSections.website?profile.website:"";
+
+ async function revalidatePublishedPortfolio(publishedSlug:string){
+  try{
+   const {data:{session}}=await client.auth.getSession();
+   if(!session)return;
+   await fetch("/api/portfolio/revalidate",{
+    method:"POST",
+    headers:{"content-type":"application/json",Authorization:`Bearer ${session.access_token}`},
+    body:JSON.stringify({slug:publishedSlug})
+   });
+  }catch{
+   // Publishing is authoritative at the DB; ISR cache falls back to its TTL.
+  }
+ }
+
+ async function confirmPublishing(){
+  const action=publishConfirmation;
+  setPublishConfirmation(null);
+  if(action==="publish"){
+   await run(async()=>{
+    const requestedSlug=validPortfolioSlug(slug);
+    const previousSlug=publication?.slug;
+    const {error}=await client.rpc("publish_portfolio_v2",{
+     p_slug:requestedSlug,p_template:theme,p_sections:publicSections,
+     p_noindex:noindex,p_open_to_opportunities:openToOpportunities
+    });
+    if(error){
+     if(error.code==="23505")throw new Error("Nama pautan sudah digunakan. Pilih nama lain.");
+     throw new Error(error.message);
+    }
+    await revalidatePublishedPortfolio(requestedSlug);
+    if(previousSlug&&previousSlug!==requestedSlug)await revalidatePublishedPortfolio(previousSlug);
+    setNotice("Portfolio diterbitkan. Pilihan seksyen yang dipilih kini tersedia pada pautan awam.");
+   });
+  }else if(action==="unpublish"&&publication){
+   await run(async()=>{
+    const previousSlug=publication.slug;
+    const {error}=await client.from("portfolio_publications")
+     .update({published:false}).eq("user_id",userId);
+    if(error)throw error;
+    await revalidatePublishedPortfolio(previousSlug);
+    setNotice("Portfolio dinyahterbitkan; pautan awam tidak lagi tersedia.");
+   });
+  }
+ }
+
  const protectedNotice=<div className="tf-notice" role="status">{notice}<button onClick={()=>setNotice("")} aria-label="Tutup mesej"><X size={14}/></button></div>;
  function emptyBox(title:string,desc:string){return <div className="tf-empty"><div className="tf-emptyicon"><BookOpen size={26}/></div><b>{title}</b><p>{desc}</p></div>}
  return <div className={`tf-app ${dashboardTheme==="neumorph"?"tf-neumorph":""}`}><aside className={`tf-sidebar ${mobile?"opened":""}`}><Link href="/" className="tf-brand"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><span>Talentfolio AI<small>YOUR GROWTH WORKSPACE</small></span></Link>
  <div className="tf-navlabel">WORKSPACE</div><nav>{paths.map(([href,label,Icon])=><Link key={href} onClick={()=>setMobile(false)} href={href} className={pathname===href?"active":""}><Icon size={18}/>{label}</Link>)}</nav>
- <div className="tf-navlabel">DEVELOPMENT</div><Link className="tf-side-extra" href="/skills"><Target size={18}/> Career Roadmap</Link>
+ <div className="tf-navlabel">DEVELOPMENT</div>
  <div className="tf-side-promo"><span>✦ CAREER GROWTH</span><p>Bina kemahiran, simpan pencapaian dan kongsi portfolio dengan yakin.</p><Link href="/skills">Lihat analisis <ArrowRight size={14}/></Link></div>{section!=="dashboard"&&<SupportPartners variant="dashboard"/>}</aside>
  {mobile&&<button className="tf-mobile-overlay" onClick={()=>setMobile(false)} aria-label="Tutup menu"/>}
  <div className="tf-main"><header className="tf-topbar"><div className="tf-top-left"><button className="tf-menu" onClick={()=>setMobile(!mobile)} aria-label="Buka menu"><Menu size={20}/></button><span>Workspace <span style={{color:"#afbacb"}}>/</span> <strong>{pageTitle}</strong></span></div>
@@ -94,7 +169,7 @@ export default function Workspace(){
  <div className="tf-two"><section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Skills Overview</h3><p>Penilaian kendiri yang anda rekodkan</p></div><Link href="/skills" className="tf-text-link">View analysis →</Link></div>
  {skills.length===0?emptyBox("Belum ada kemahiran","Mulakan dengan menambah kemahiran anda di Skills Analysis."):skills.slice(0,5).map(s=><div className="tf-progress" key={s.id}><div><b>{s.name}</b><span>{s.self_rating||0}/5</span></div><div className="tf-track"><div style={{width:`${(s.self_rating||0)*20}%`}}/></div></div>)}
  <div className="tf-insight"><Sparkles size={17}/><span><b>Growth insight</b><br/>Jadikan kemahiran anda lebih meyakinkan dengan menambah projek dan bukti pencapaian.</span></div></section>
- <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Recent Achievements</h3><p>Perjalanan profesional anda</p></div><span className="tf-pill green">LIVE DATA</span></div>
+ <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Recent Achievements</h3><p>Perjalanan profesional anda</p></div><span className="tf-pill green">Aktiviti terkini</span></div>
  {[...certs.slice(0,2).map(x=>({name:x.name,type:"Certificate",date:x.created_at})),...projects.slice(0,2).map(x=>({name:x.title,type:"Project",date:x.created_at}))].sort((a,b)=>b.date.localeCompare(a.date)).length===0?emptyBox("Belum ada aktiviti","Sijil dan projek terbaru akan muncul di sini."): [...certs.slice(0,2).map(x=>({name:x.name,type:"Certificate",date:x.created_at})),...projects.slice(0,2).map(x=>({name:x.title,type:"Project",date:x.created_at}))].sort((a,b)=>b.date.localeCompare(a.date)).map((e,i)=><div className="tf-event" key={i}><div className="tf-event-icon">{e.type==="Project"?<BriefcaseBusiness size={18}/>:<Award size={18}/>}</div><div><b>{e.type} added</b><p>{e.name} · {dateText(e.date)}</p></div></div>)}</section></div></>}
  {(section==="education"||section==="experience")&&<HistoryEditor kind={section} userId={userId}/>}
  {section==="profile"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL IDENTITY</div><h1>My Profile</h1><p>Maklumat ini digunakan untuk portfolio dan analisis kemahiran anda.</p></div><Link href="/settings" className="tf-btn tf-btn-outline"><Settings size={15}/> Account Settings</Link></div>
@@ -122,10 +197,10 @@ export default function Workspace(){
  <p className="tf-warning"><ShieldCheck size={17}/> Sijil yang dimuat naik sendiri tidak dianggap disahkan. Status Verified memerlukan pengesahan daripada penerbit sijil.</p></>}
  {section==="skills"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL DEVELOPMENT INTELLIGENCE</div><h1>Skills Intelligence</h1><p>Rekod kompetensi kendiri, banding keperluan jawatan dan bina pelan perkembangan.</p></div><span className="tf-pill"><Sparkles size={14}/> Evidence-first</span></div>
  <div className="tf-stats tf-three">{[[skills.length,"Skills Recorded",Sparkles],[projects.length+certs.length,"Evidence Items",Award],[gaps.filter(x=>x.gap>0).length,"Growth Priorities",Target]].map(([n,l,I])=>{const Icon=I as typeof Sparkles;return <div className="tf-stat" key={String(l)}><div><span>{String(l)}</span><span className="tf-stat-icon"><Icon size={18}/></span></div><strong>{String(n).padStart(2,"0")}</strong><small>Current account data</small></div>})}</div>
- <AIAnalysis role={desired.label} skills={skills}/>
+ <AIAnalysis role={desired.title} skills={skills}/>
  <div className="tf-two"><section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Competency Breakdown</h3><p>Tahap 1–5 yang dinilai oleh pengguna sendiri</p></div></div>{!skills.length?emptyBox("Tiada penilaian","Tambah kemahiran di bawah untuk memulakan analisis."):skills.map(s=><div className="tf-progress" key={s.id}><div><b>{s.name}</b><span>{s.self_rating||0}/5</span></div><div className="tf-track"><div style={{width:`${(s.self_rating||0)*20}%`}}/></div></div>)}
  <div className="tf-insight"><Sparkles size={17}/><span><b>Transparency first</b><br/>Skor ini ialah penilaian kendiri, bukan pengesahan profesional atau penilaian oleh model AI.</span></div></section>
- <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Target Role & Gap Analysis</h3><p>Target demonstrasi, boleh dikemas kini kemudian</p></div></div><label className="tf-form">Target Role<select value={role} onChange={e=>setRole(e.target.value)}>{goals.map(g=><option key={g.value} value={g.value}>{g.label}</option>)}</select></label>
+ <section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Target Role & Gap Analysis</h3><p>Target demonstrasi, boleh dikemas kini kemudian</p></div></div><label className="tf-form">Target Role<select value={role} onChange={e=>setRole(e.target.value)}>{CAREER_TARGETS.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>
  {gaps.map(g=><div className="tf-gap" key={g.label}><div><b>{g.label}</b><span style={{color:g.gap>0?"#ae7622":"#169d87"}}>{g.gap>0?`Gap +${g.gap}`:g.score===0?"Not assessed":"Meets target"}</span></div><div className="tf-track"><div style={{width:`${g.score*20}%`}}/></div><small>Current {g.score}/5 · Target {g.target}/5</small></div>)}</section></div>
  <div className="tf-two tf-space-top"><SkillEditor userId={userId} skills={skills} onChanged={()=>refresh(userId)}/> <section className="tf-card tf-section"><div className="tf-card-head"><h3>90-Day Growth Roadmap</h3><span className="tf-pill green">RULE-BASED</span></div>{[[30,"Build fundamentals","Pilih satu bidang paling memerlukan perhatian dan lengkapkan modul asas."],[60,"Create stronger evidence","Bina projek praktikal dan dokumentasikan keputusan serta teknologi digunakan."],[90,"Demonstrate readiness","Semak bersama mentor dan kemas kini portfolio untuk jawatan sasaran."]].map(([day,title,description])=><div className="tf-roadmap" key={day}><span>{day}</span><div><b>{title}</b><p>{description}</p></div></div>)}</section></div><p className="tf-warning"><ShieldCheck size={17}/> Ini bukan AI generatif atau pengesahan kelayakan pekerjaan. Perbandingan sasaran adalah ilustrasi dan memerlukan penilaian manusia.</p></>}
  {section==="prompt"&&<PromptGenerator/>}
@@ -159,5 +234,5 @@ export default function Workspace(){
   });
 }}>
  <div className="tf-card-head"><h3>Publish Your Portfolio</h3><span className="tf-pill">{publication?.published?"Published":"Unpublished"}</span></div><p className="tf-hint">Hanya nama, headline, bio, lokasi, gambar profil, pendidikan, pengalaman, kemahiran dan projek yang dipilih akan diterbitkan. Gambar galeri bagi projek terpilih turut diterbitkan; fail sijil dan alamat e-mel tidak akan dipaparkan. Selepas menukar gambar profil, tekan Publish semula untuk mengemas kini laman awam.</p><label>Public link slug<input required value={slug} onChange={e=>setSlug(nameSlug(e.target.value))} minLength={3} maxLength={48}/></label><small className="tf-muted">talent-portfolio-ai.vercel.app/u/{slug||"your-name"}</small><div className="tf-form-actions"><button className="tf-btn" disabled={busy}><Globe2 size={15}/> Publish Portfolio</button>{publication?.published&&<button className="tf-btn tf-btn-outline" type="button" disabled={busy} onClick={()=>void run(async()=>{const {error}=await client.from("portfolio_publications").update({published:false}).eq("user_id",userId);if(error)throw error;setNotice("Portfolio dinyahterbitkan.")})}><X size={15}/> Unpublish</button>}</div></form></>}
- </>}</main><div className="tf-footer">© 2026 Talentfolio AI · Privacy-first portfolio workspace · Free MVP</div></div></div>;
+ </>}</main><div className="tf-footer">© {new Date().getFullYear()} Talentfolio AI · Privacy-first portfolio workspace · Free MVP</div></div></div>;
 }
