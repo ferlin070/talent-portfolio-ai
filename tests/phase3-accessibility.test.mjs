@@ -59,3 +59,13 @@ test("responsive motion preferences and breakpoints remain available",()=>{
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/:focus-visible/);
 });
+
+
+test("public portfolio distinguishes missing records from backend errors",()=>{
+ const code=read("app/u/[slug]/page.tsx");
+ assert.match(code,/if\(error\)\{[\s\S]*?throw new Error\("Public portfolio lookup temporarily unavailable"\)/);
+ assert.match(code,/if\(!Array\.isArray\(data\)\|\|data\.length>1\)/);
+ assert.match(code,/if\(data\.length===0\)notFound\(\)/);
+ assert.doesNotMatch(code,/if\(error\|\|[^\n]*\)notFound\(\)/);
+ assert.match(code,/slug\.length<3\|\|slug\.length>48/);
+});
