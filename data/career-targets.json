@@ -1,0 +1,315 @@
+[
+  {
+    "id": "fullstack",
+    "title": "Full Stack Developer",
+    "skills": [
+      {
+        "name": "Web Development",
+        "target": 5,
+        "aliases": [
+          "web development",
+          "frontend",
+          "backend",
+          "full stack",
+          "next.js"
+        ]
+      },
+      {
+        "name": "JavaScript",
+        "target": 4,
+        "aliases": [
+          "javascript",
+          "typescript",
+          "node.js"
+        ]
+      },
+      {
+        "name": "React",
+        "target": 4,
+        "aliases": [
+          "react",
+          "reactjs",
+          "react.js"
+        ]
+      },
+      {
+        "name": "Database",
+        "target": 4,
+        "aliases": [
+          "sql",
+          "postgresql",
+          "mysql",
+          "mongodb",
+          "database",
+          "supabase"
+        ]
+      },
+      {
+        "name": "Git",
+        "target": 4,
+        "aliases": [
+          "git",
+          "github",
+          "gitlab"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cloud",
+    "title": "Cloud Engineer",
+    "skills": [
+      {
+        "name": "Cloud Computing",
+        "target": 5,
+        "aliases": [
+          "cloud computing",
+          "aws",
+          "azure",
+          "gcp",
+          "proxmox"
+        ]
+      },
+      {
+        "name": "Linux",
+        "target": 5,
+        "aliases": [
+          "linux",
+          "ubuntu",
+          "debian"
+        ]
+      },
+      {
+        "name": "Networking",
+        "target": 4,
+        "aliases": [
+          "networking",
+          "network administration",
+          "tcp/ip"
+        ]
+      },
+      {
+        "name": "Docker",
+        "target": 4,
+        "aliases": [
+          "docker",
+          "containerization",
+          "kubernetes"
+        ]
+      },
+      {
+        "name": "Security",
+        "target": 4,
+        "aliases": [
+          "cybersecurity",
+          "cloud security",
+          "firewall",
+          "zero trust"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data",
+    "title": "Data Analyst",
+    "skills": [
+      {
+        "name": "SQL",
+        "target": 4,
+        "aliases": [
+          "sql",
+          "postgresql",
+          "mysql",
+          "t-sql"
+        ]
+      },
+      {
+        "name": "Python",
+        "target": 4,
+        "aliases": [
+          "python",
+          "pandas"
+        ]
+      },
+      {
+        "name": "Data Analysis",
+        "target": 5,
+        "aliases": [
+          "data analysis",
+          "analytics",
+          "data analyst"
+        ]
+      },
+      {
+        "name": "Statistics",
+        "target": 4,
+        "aliases": [
+          "statistics",
+          "statistical analysis"
+        ]
+      },
+      {
+        "name": "Data Visualization",
+        "target": 4,
+        "aliases": [
+          "power bi",
+          "tableau",
+          "dashboard",
+          "data visualization"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "uiux",
+    "title": "UI/UX Designer",
+    "skills": [
+      {
+        "name": "UI Design",
+        "target": 5,
+        "aliases": [
+          "ui design",
+          "interface design",
+          "figma"
+        ]
+      },
+      {
+        "name": "UX Research",
+        "target": 4,
+        "aliases": [
+          "ux research",
+          "user research",
+          "usability testing"
+        ]
+      },
+      {
+        "name": "Prototyping",
+        "target": 4,
+        "aliases": [
+          "prototyping",
+          "wireframing"
+        ]
+      },
+      {
+        "name": "Design Systems",
+        "target": 4,
+        "aliases": [
+          "design systems",
+          "component library"
+        ]
+      },
+      {
+        "name": "Accessibility",
+        "target": 4,
+        "aliases": [
+          "accessibility",
+          "wcag",
+          "inclusive design"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "devops",
+    "title": "DevOps Engineer",
+    "skills": [
+      {
+        "name": "Linux",
+        "target": 5,
+        "aliases": [
+          "linux",
+          "ubuntu",
+          "debian"
+        ]
+      },
+      {
+        "name": "CI/CD",
+        "target": 4,
+        "aliases": [
+          "ci/cd",
+          "github actions",
+          "gitlab ci",
+          "jenkins"
+        ]
+      },
+      {
+        "name": "Infrastructure as Code",
+        "target": 4,
+        "aliases": [
+          "terraform",
+          "ansible",
+          "infrastructure as code"
+        ]
+      },
+      {
+        "name": "Containers",
+        "target": 4,
+        "aliases": [
+          "docker",
+          "kubernetes",
+          "containerization"
+        ]
+      },
+      {
+        "name": "Monitoring",
+        "target": 4,
+        "aliases": [
+          "prometheus",
+          "grafana",
+          "monitoring"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cybersecurity",
+    "title": "Cybersecurity Analyst",
+    "skills": [
+      {
+        "name": "Network Security",
+        "target": 5,
+        "aliases": [
+          "network security",
+          "firewall",
+          "ids",
+          "ips"
+        ]
+      },
+      {
+        "name": "Threat Analysis",
+        "target": 4,
+        "aliases": [
+          "threat analysis",
+          "incident response",
+          "soc"
+        ]
+      },
+      {
+        "name": "Linux",
+        "target": 4,
+        "aliases": [
+          "linux",
+          "ubuntu"
+        ]
+      },
+      {
+        "name": "Security Testing",
+        "target": 4,
+        "aliases": [
+          "pentesting",
+          "penetration testing",
+          "vulnerability assessment"
+        ]
+      },
+      {
+        "name": "Risk Management",
+        "target": 4,
+        "aliases": [
+          "risk management",
+          "compliance",
+          "iso 27001"
+        ]
+      }
+    ]
+  }
+]
