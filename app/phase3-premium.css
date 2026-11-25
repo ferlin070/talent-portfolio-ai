@@ -215,3 +215,13 @@ html.tf-dark .tf-component-loading{color:#cddcfa;background:#243554;border-color
 
 .tf-skip-anchor{display:block;position:relative;height:0;scroll-margin-top:88px}
 #tf-main-content{scroll-margin-top:78px}
+
+/* Explicit reduced-motion support across inherited theme animations. */
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{
+  animation-duration:.01ms!important;
+  animation-iteration-count:1!important;
+  transition-duration:.01ms!important;
+  scroll-behavior:auto!important;
+ }
+}
