@@ -2,9 +2,9 @@ import ProjectMedia from "@/components/project-media";
 import Link from "next/link";
 import {
   ArrowDownRight, ArrowUpRight, BriefcaseBusiness, Code2,
-  Globe2, GraduationCap, MapPin, Sparkles, UserRound,
+  Globe2, GraduationCap, MapPin, Sparkles, UserRound, ExternalLink,
 } from "lucide-react";
-import { ProjectGallery, type PublishedImage } from "@/components/project-gallery-public";
+import { type PublishedImage } from "@/components/project-gallery-public";
 
 export type PublicPortfolioSnapshot = {
   name?:string;headline?:string;bio?:string;location?:string;
