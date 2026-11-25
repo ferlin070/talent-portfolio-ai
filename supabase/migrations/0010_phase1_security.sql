@@ -75,13 +75,13 @@ BEGIN
 END$$;
 
 -- Gallery paths must belong to the expected project, not just the account.
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='tf_gallery_path_project') THEN
     ALTER TABLE public.project_images ADD CONSTRAINT tf_gallery_path_project
       CHECK (storage_path LIKE user_id::text || '/' || project_id::text || '/%');
   END IF;
-END$;
+END; $$;
 
 -- 1.5: Prevent duplicate skill names by case-insensitive owner+name.
 CREATE UNIQUE INDEX IF NOT EXISTS tf_skills_owner_name_ci
