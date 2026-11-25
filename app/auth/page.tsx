@@ -4,6 +4,7 @@ import SupportPartners from "@/components/support-partners";
 import { useEffect,useMemo,useState,type FormEvent } from "react";
 import { Award, ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
+import { safeNext } from "@/lib/safe-next";
 
 type Mode="login"|"signup"|"reset"|"newpassword";
 export default function AuthPage(){
@@ -12,7 +13,7 @@ export default function AuthPage(){
  useEffect(()=>{
    const search=new URLSearchParams(window.location.search);
    const next=search.get("next");
-   const destination=next?.startsWith("/")&&!next.startsWith("//")?next:"/dashboard";
+   const destination=safeNext(next);
    const recovery=search.get("mode")==="recovery"||window.location.hash.includes("type=recovery");
    if(recovery)setMode("newpassword");
 
@@ -36,7 +37,7 @@ export default function AuthPage(){
     setMessage("Semak e-mel pengesahan anda. Sila klik pautan pengesahan sebelum log masuk.");
    }else if(mode==="login"){
     const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;
-    window.location.assign("/dashboard");
+    window.location.assign(safeNext(new URLSearchParams(window.location.search).get("next")));
    }else if(mode==="reset"){
     const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+"/auth/callback?type=recovery"});if(error)throw error;
     setMessage("Jika alamat ini berdaftar, pautan reset kata laluan akan dihantar.");
