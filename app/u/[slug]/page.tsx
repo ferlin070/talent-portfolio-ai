@@ -27,9 +27,10 @@ async function fetchPortfolio(slug:string):Promise<Portfolio>{
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  if(!url||!key)throw new Error("Public portfolio database configuration is missing");
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
- const {data,error}=await db.from("portfolio_publications").select("slug,template,snapshot").eq("slug",slug).eq("published",true).maybeSingle();
- if(error||!data)notFound();
- return {slug:data.slug,template:data.template,snapshot:data.snapshot as Snap||{}};
+ const {data,error}=await db.rpc("get_published_portfolio",{p_slug:slug});
+ if(error||!Array.isArray(data)||data.length!==1)notFound();
+ const published=data[0] as Portfolio;
+ return {slug:published.slug,template:published.template,snapshot:published.snapshot||{}};
 }
 export default async function PublicPortfolio({params}:{params:Promise<{slug:string}>}){
  const {slug}=await params;
@@ -42,7 +43,24 @@ export default async function PublicPortfolio({params}:{params:Promise<{slug:str
  const experiences=Array.isArray(s.experience)?s.experience:[];
  const avatar=s.avatar?validAvatar(s.avatar):null,website=s.website?validWebsite(s.website):null;
  const imageBase=(process.env.NEXT_PUBLIC_SUPABASE_URL||"")+"/storage/v1/object/public/project-gallery/";
- const safeProjects=projects.map(p=>({...p,images:(Array.isArray(p.images)?p.images:[]).filter(im=>{try{const u=new URL(im.url);return u.href.startsWith(imageBase)&&u.protocol==="https:"}catch{return false}}).slice(0,12)}));
+ const safeProjects=projects.map(p=>({
+  ...p,
+  images:(Array.isArray(p.images)?p.images:[])
+   .map(im=>{
+     const prefix="/storage/v1/object/public/project-gallery/";
+     const value=im.url.startsWith(prefix)
+       ?`${process.env.NEXT_PUBLIC_SUPABASE_URL||""}${im.url}`
+       :im.url;
+     return {...im,url:value};
+   })
+   .filter(im=>{
+     try{
+       const imageUrl=new URL(im.url);
+       return imageUrl.protocol==="https:"&&imageUrl.href.startsWith(imageBase);
+     }catch{return false;}
+   })
+   .slice(0,12)
+ }));
  if(["sunny","student3d","noirluxe"].includes(portfolio.template)){
   return <ExpansionThemes theme={portfolio.template as ExpansionTheme} name={name} headline={s.headline||""}
    bio={s.bio||""} location={s.location||""} avatar={avatar||""} website={website||""}
