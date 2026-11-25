@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/lib/request-origin";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
@@ -24,7 +25,7 @@ function response(message: string, status: number) {
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) {
+  if (!isAllowedRequestOrigin(origin, request.url)) {
     return response("Asal permintaan tidak dibenarkan.", 403);
   }
 
