@@ -8,7 +8,7 @@ import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, File
 import { getSupabaseClient } from "@/lib/supabase";
 import HistoryEditor from "@/components/history-editor";
 import ProfilePhotoEditor from "@/components/profile-photo-editor";
-import PortfolioPreview from "@/components/portfolio-preview";
+import PublicPortfolioClassic from "@/components/public-portfolio-classic";
 import PortfolioThemes, { type NewTheme } from "@/components/portfolio-themes";
 import ExpansionThemes,{type ExpansionTheme} from "@/components/portfolio-expansion";
 import ProjectGalleryEditor,{type GalleryImage} from "@/components/project-gallery-editor";
@@ -266,11 +266,18 @@ export default function Workspace(){
      education={previewEducation.map(e=>({institution:e.institution,qualification:e.qualification,field:e.field_of_study,start:e.start_year,end:e.end_year,description:e.description}))}
      experience={previewExperience.map(e=>({company:e.company,role:e.role,start:e.start_date,end:e.end_date,description:e.description}))}
      openToOpportunities={openToOpportunities} preview/></div>:
-   <PortfolioPreview name={username} headline={profile.headline}
-     bio={profile.bio} location={previewLocation} avatar={profile.avatar_url}
-     theme={theme as "modern"|"minimal"|"tech"} skills={previewSkills}
-     projects={previewProjects} education={previewEducation}
-     experience={previewExperience} openToOpportunities={openToOpportunities}/>
+   <div className="tf-portfolio-new-preview">
+    <PublicPortfolioClassic
+     template={theme}
+     s={draftSnapshot}
+     avatar={profile.avatar_url}
+     website={previewWebsite}
+     safeProjects={previewProjects.map(project=>({
+      title:project.title,description:project.description,
+      url:project.url||"",images:project.images
+     }))}
+    />
+   </div>
  }
  <form className="tf-card tf-section tf-form" onSubmit={event=>{
     event.preventDefault();
