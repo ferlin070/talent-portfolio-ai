@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:phase2": "node --experimental-strip-types --test tests/phase2-core.test.mjs"
+    "test:phase2": "node --experimental-strip-types --test tests/phase2-core.test.mjs",
+    "prebuild": "npm run test:phase2"
   },
   "dependencies": {
     "next": "^15.5.0",
@@ -26,5 +27,8 @@
     "@tailwindcss/postcss": "^4.1.12",
     "eslint": "^9.34.0",
     "eslint-config-next": "^15.5.0"
+  },
+  "engines": {
+    "node": ">=22.16.0 <25"
   }
 }
