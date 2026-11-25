@@ -192,7 +192,8 @@ html.tf-dark .tf-component-loading{color:#cddcfa;background:#243554;border-color
  .tf-headingrow h1{font-size:26px}
 }
 @media(max-width:380px){
- .tf-marketing-demo-pill{display:none}
+ .tf-marketing-demo-bar>span:nth-child(2){display:none}
+ .tf-marketing-demo-pill{font-size:8px;margin-left:auto}
  .tf-marketing-demo-main{padding:13px 10px}
  .tf-marketing-demo-metrics{grid-template-columns:1fr}
  .tf-marketing-demo-metrics>div:last-child{display:none}
