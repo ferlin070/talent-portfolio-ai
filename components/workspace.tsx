@@ -1,20 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import WorkspaceSkeleton from "@/components/workspace-skeleton";
 import Link from "next/link";
 import SupportPartners from "@/components/support-partners";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, Settings, Search, Target, RefreshCw, Moon, Sun, WandSparkles } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
-import HistoryEditor from "@/components/history-editor";
-import ProfilePhotoEditor from "@/components/profile-photo-editor";
-import PublicPortfolioClassic from "@/components/public-portfolio-classic";
-import PortfolioThemes, { type NewTheme } from "@/components/portfolio-themes";
-import ExpansionThemes,{type ExpansionTheme} from "@/components/portfolio-expansion";
-import ProjectGalleryEditor,{type GalleryImage} from "@/components/project-gallery-editor";
-import SkillEditor from "@/components/skill-editor";
-import AIAnalysis from "@/components/ai-skills-analysis";
-import PromptGenerator from "@/components/prompt-generator";
+import type {NewTheme} from "@/components/portfolio-themes";
+import type {ExpansionTheme} from "@/components/portfolio-expansion";
+import type {GalleryImage} from "@/components/project-gallery-editor";
+
+const chunkPlaceholder=()=>(
+ <div className="tf-component-loading" role="status">Memuatkan modul...</div>
+);
+const HistoryEditor=dynamic(()=>import("@/components/history-editor"),{loading:chunkPlaceholder});
+const ProfilePhotoEditor=dynamic(()=>import("@/components/profile-photo-editor"),{loading:chunkPlaceholder});
+const PublicPortfolioClassic=dynamic(()=>import("@/components/public-portfolio-classic"),{loading:chunkPlaceholder});
+const PortfolioThemes=dynamic(()=>import("@/components/portfolio-themes"),{loading:chunkPlaceholder});
+const ExpansionThemes=dynamic(()=>import("@/components/portfolio-expansion"),{loading:chunkPlaceholder});
+const ProjectGalleryEditor=dynamic(()=>import("@/components/project-gallery-editor"),{loading:chunkPlaceholder});
+const SkillEditor=dynamic(()=>import("@/components/skill-editor"),{loading:chunkPlaceholder});
+const AIAnalysis=dynamic(()=>import("@/components/ai-skills-analysis"),{loading:chunkPlaceholder});
+const PromptGenerator=dynamic(()=>import("@/components/prompt-generator"),{loading:chunkPlaceholder});
 import ConfirmDialog from "@/components/confirm-dialog";
 import {CAREER_TARGETS, measureCareerTarget} from "@/lib/career-targets";
 import {PUBLIC_SECTIONS, DEFAULT_PUBLIC_SECTIONS, normalizeSections, buildDraftSnapshot, visualFingerprint, snapshotFingerprint, validPortfolioSlug, type PortfolioSections} from "@/lib/portfolio-publishing";
@@ -39,6 +48,43 @@ export default function Workspace(){
  const [userId,setUserId]=useState<string|null>(null),[email,setEmail]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[mobile,setMobile]=useState(false),[notice,setNotice]=useState("");
  const [profile,setProfile]=useState<Profile>(empty),[projects,setProjects]=useState<Project[]>([]),[certs,setCerts]=useState<Certificate[]>([]),[skills,setSkills]=useState<Skill[]>([]),[education,setEducation]=useState<Education[]>([]),[workHistory,setWorkHistory]=useState<Work[]>([]),[publication,setPublication]=useState<Publication|null>(null),[projectImages,setProjectImages]=useState<GalleryImage[]>([]);
  const [dashboardTheme,setDashboardTheme]=useState<"default"|"neumorph">("default");
+ const sidebarRef=useRef<HTMLElement|null>(null);
+ const menuButtonRef=useRef<HTMLButtonElement|null>(null);
+ useEffect(()=>{
+  if(!mobile)return;
+  const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  const priorOverflow=document.body.style.overflow;
+  document.body.style.overflow="hidden";
+  sidebarRef.current?.querySelector<HTMLButtonElement>(".tf-mobile-close")?.focus();
+
+  function onKeydown(event:KeyboardEvent){
+   if(event.key==="Escape"){
+    event.preventDefault();
+    setMobile(false);
+    return;
+   }
+   if(event.key!=="Tab")return;
+   const nodes=Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>(
+     'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'
+   )||[]).filter(node=>node.offsetParent!==null);
+   if(!nodes.length)return;
+   const first=nodes[0],last=nodes[nodes.length-1];
+   if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  }
+  const desktop=window.matchMedia("(min-width: 841px)");
+  const onDesktop=(event:MediaQueryListEvent)=>{if(event.matches)setMobile(false);};
+  desktop.addEventListener("change",onDesktop);
+  document.addEventListener("keydown",onKeydown);
+  return ()=>{
+   document.body.style.overflow=priorOverflow;
+   desktop.removeEventListener("change",onDesktop);
+   document.removeEventListener("keydown",onKeydown);
+   if(previous?.isConnected)previous.focus();
+   else menuButtonRef.current?.focus();
+  };
+ },[mobile]);
+
  const [dark,setDark]=useState(false);
  useEffect(()=>{const pref=localStorage.getItem("tf-dark")==="true";setDark(pref);document.documentElement.classList.toggle("tf-dark",pref);},[]);
  function toggleDark(){setDark(prev=>{const next=!prev;document.documentElement.classList.toggle("tf-dark",next);localStorage.setItem("tf-dark",String(next));return next;});}
@@ -220,19 +266,20 @@ export default function Workspace(){
 
  const protectedNotice=<div className="tf-notice" role="status">{notice}<button onClick={()=>setNotice("")} aria-label="Tutup mesej"><X size={14}/></button></div>;
  function emptyBox(title:string,desc:string){return <div className="tf-empty"><div className="tf-emptyicon"><BookOpen size={26}/></div><b>{title}</b><p>{desc}</p></div>}
- return <div className={`tf-app ${dashboardTheme==="neumorph"?"tf-neumorph":""}`}><aside className={`tf-sidebar ${mobile?"opened":""}`}><Link href="/" className="tf-brand"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><span>Talentfolio AI<small>YOUR GROWTH WORKSPACE</small></span></Link>
- <div className="tf-navlabel">WORKSPACE</div><nav>{paths.map(([href,label,Icon])=><Link key={href} onClick={()=>setMobile(false)} href={href} className={pathname===href?"active":""}><Icon size={18}/>{label}</Link>)}</nav>
+ return <div className={`tf-app ${dashboardTheme==="neumorph"?"tf-neumorph":""}`}><aside id="tf-workspace-sidebar" ref={sidebarRef} className={`tf-sidebar ${mobile?"opened":""}`} role={mobile?"dialog":undefined} aria-modal={mobile?true:undefined} aria-label="Navigasi ruang kerja"><Link href="/" className="tf-brand"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><span>Talentfolio AI<small>YOUR GROWTH WORKSPACE</small></span></Link>
+ <button type="button" className="tf-mobile-close" aria-label="Tutup navigasi" onClick={()=>setMobile(false)}><X size={19}/></button>
+ <div className="tf-navlabel">WORKSPACE</div><nav aria-label="Halaman ruang kerja">{paths.map(([href,label,Icon])=><Link key={href} onClick={()=>setMobile(false)} href={href} aria-current={pathname===href?"page":undefined} className={pathname===href?"active":""}><Icon size={18}/>{label}</Link>)}</nav>
  <div className="tf-navlabel">DEVELOPMENT</div>
  <div className="tf-side-promo"><span>✦ CAREER GROWTH</span><p>Bina kemahiran, simpan pencapaian dan kongsi portfolio dengan yakin.</p><Link href="/skills">Lihat analisis <ArrowRight size={14}/></Link></div>{section!=="dashboard"&&<SupportPartners variant="dashboard"/>}</aside>
  {mobile&&<button className="tf-mobile-overlay" onClick={()=>setMobile(false)} aria-label="Tutup menu"/>}
- <div className="tf-main"><header className="tf-topbar"><div className="tf-top-left"><button className="tf-menu" onClick={()=>setMobile(!mobile)} aria-label="Buka menu"><Menu size={20}/></button><span>Workspace <span style={{color:"#afbacb"}}>/</span> <strong>{pageTitle}</strong></span></div>
+ <div className="tf-main"><header className="tf-topbar"><div className="tf-top-left"><button className="tf-menu" ref={menuButtonRef} type="button" onClick={()=>setMobile(!mobile)} aria-controls="tf-workspace-sidebar" aria-expanded={mobile} aria-label={mobile?"Tutup navigasi":"Buka navigasi"}><Menu size={20}/></button><span>Workspace <span style={{color:"#afbacb"}}>/</span> <strong>{pageTitle}</strong></span></div>
  <div className="tf-top-right"><button type="button" className="tf-theme-toggle" aria-label={dark?"Aktifkan light mode":"Aktifkan dark mode"} title={dark?"Light Mode":"Dark Mode"} onClick={toggleDark}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><span className="tf-online"><span/> Personal workspace</span><Link href="/profile" aria-label="Profil" className="tf-avatar">{profile.avatar_url?<img src={profile.avatar_url} alt="Foto profil"/>:username.slice(0,2).toUpperCase()}</Link></div></header>
- <main className="tf-content">{notice&&protectedNotice}
+ <main className="tf-content" id="tf-main-content" tabIndex={-1}>{notice&&protectedNotice}
  {undoProject&&<div className="tf-undo-toast" role="status">
   <span>Projek &ldquo;{undoProject.title}&rdquo; dipadam. Anda boleh memulihkannya dalam 6 saat.</span>
   <button type="button" onClick={()=>void undoProjectDeletion()} disabled={busy}>Buat Asal</button>
  </div>}
- {loading?<div className="tf-loading"><RefreshCw className="tf-spin"/> Memuatkan ruang kerja anda...</div>:!userId?<div className="tf-signedout"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><h1>Ruang kerja profesional anda</h1><p>Daftar atau log masuk untuk menyimpan profil, sijil, projek dan kemahiran secara selamat.</p><Link className="tf-btn" href="/auth">Daftar / Log masuk <ArrowRight size={16}/></Link><Link href="/" className="tf-link">Lihat laman utama</Link></div>:<>
+ {loading?<WorkspaceSkeleton/>:!userId?<div className="tf-signedout"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><h1>Ruang kerja profesional anda</h1><p>Daftar atau log masuk untuk menyimpan profil, sijil, projek dan kemahiran secara selamat.</p><Link className="tf-btn" href="/auth">Daftar / Log masuk <ArrowRight size={16}/></Link><Link href="/" className="tf-link">Lihat laman utama</Link></div>:<>
  {section==="dashboard"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL WORKSPACE</div><h1>Welcome back, {username.split(" ")[0]} <span>👋</span></h1><p>Everything about your professional journey, in one place.</p></div><div className="tf-form-actions"><button type="button" className="tf-dashboard-theme-switch" disabled={busy} onClick={()=>void run(async()=>{const next=dashboardTheme==="default"?"neumorph":"default";const {error}=await client.from("dashboard_preferences").upsert({user_id:userId,theme:next,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error)throw error;setDashboardTheme(next);})}><Sparkles size={15}/>{dashboardTheme==="default"?"Soft Neumorphism":"Default Theme"}</button><Link className="tf-btn tf-btn-outline" href="/portfolio"><ExternalLink size={15}/> View Portfolio</Link></div></div>
  <div className="tf-welcome"><div><small>✦ YOUR PROFESSIONAL JOURNEY</small><h2>Build your future,<br/> one skill at a time.</h2><p>Profil anda {Math.round(completion)}% lengkap. Tambah projek atau sijil untuk menyerlahkan pengalaman dan kebolehan anda.</p><Link className="tf-btn tf-btn-white" href="/profile">Continue Building <ArrowRight size={15}/></Link></div><div className="tf-welcome-orb"/></div>
  <SupportPartners variant="dashboardMain"/>
