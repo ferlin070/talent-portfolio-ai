@@ -38,7 +38,7 @@ test("landing demonstration explicitly identifies example data",()=>{
  const code=read("components/marketing-preview.tsx");
  assert.match(code,/CONTOH PAPARAN/);
  assert.match(code,/Perkembangan kemahiran/);
- assert.match(code,/Contoh antaramuka/);
+ assert.match(code,/aria-label="[^"]*contoh antaramuka[^"]*bukan data akaun pengguna sebenar"/i);
 });
 
 test("initial route chunk excludes costly workspace sections",()=>{
