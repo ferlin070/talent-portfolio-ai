@@ -6,7 +6,7 @@ import WorkspaceSkeleton from "@/components/workspace-skeleton";
 import Link from "next/link";
 import SupportPartners from "@/components/support-partners";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, Settings, Search, Target, RefreshCw, Moon, Sun, WandSparkles } from "lucide-react";
+import { LayoutDashboard, Globe2, FolderKanban, Award, ChartNoAxesCombined, FileUser, GraduationCap, BriefcaseBusiness, UserRound, Sparkles, Menu, X, Plus, LogOut, ExternalLink, UploadCloud, Trash2, Download, CheckCircle2, BookOpen, ArrowRight, ShieldCheck, Settings, Search, Target, Moon, Sun, WandSparkles } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 import type {NewTheme} from "@/components/portfolio-themes";
 import type {ExpansionTheme} from "@/components/portfolio-expansion";
