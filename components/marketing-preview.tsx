@@ -31,9 +31,9 @@ export default function MarketingPreview(){
      <div className="tf-marketing-demo-grid">
       <div className="tf-marketing-demo-chart">
        <div className="tf-marketing-demo-cardtitle">Perkembangan kemahiran <span>CONTOH</span></div>
-       <div className="tf-demo-bar-row"><b>Frontend</b><span style={{"--fill":"81%"} as React.CSSProperties}/></div>
-       <div className="tf-demo-bar-row"><b>Cloud</b><span style={{"--fill":"68%"} as React.CSSProperties}/></div>
-       <div className="tf-demo-bar-row"><b>Database</b><span style={{"--fill":"55%"} as React.CSSProperties}/></div>
+       <div className="tf-demo-bar-row"><b>Frontend</b><span style={{"--fill":"81%"} as CSSProperties}/></div>
+       <div className="tf-demo-bar-row"><b>Cloud</b><span style={{"--fill":"68%"} as CSSProperties}/></div>
+       <div className="tf-demo-bar-row"><b>Database</b><span style={{"--fill":"55%"} as CSSProperties}/></div>
       </div>
       <div className="tf-marketing-demo-project">
        <div className="tf-demo-project-art"><Layers3 size={25}/></div>
