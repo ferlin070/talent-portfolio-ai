@@ -5,15 +5,16 @@ import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
 import CareerReport from "@/components/career-report";
 import {parseCareerReport} from "@/lib/career-report";
+import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/gemini-models";
 import {encryptVault,decryptVault,vaultStorageKey,type VaultEnvelope} from "@/lib/gemini-key-vault";
 type Entry={id:number;label:string;secret:string;visible:boolean};
 type Attempt={slot:number;status:string;httpStatus?:number;retryCount?:number};
 const MAX_KEYS=5;
-const MODELS=[{id:"gemini-3.5-flash-lite",label:"Gemini 3.5 Flash-Lite · Disyorkan"},{id:"gemini-3.6-flash",label:"Gemini 3.6 Flash"},{id:"gemini-3.8-flash",label:"Gemini 3.8 Flash"}];
+
 export default function AIAnalysis({role,skills}:{role:string;skills:{name:string;self_rating:number|null}[]}){
  const db=useMemo(()=>getSupabaseClient(),[]);
  const [keys,setKeys]=useState<Entry[]>([{id:1,label:"Gemini Key 1",secret:"",visible:false}]);
- const [model,setModel]=useState("gemini-3.5-flash-lite"),[consent,setConsent]=useState(false);
+ const [model,setModel]=useState<string>(DEFAULT_GEMINI_MODEL),[consent,setConsent]=useState(false);
  const [busy,setBusy]=useState(false),[result,setResult]=useState(""),[error,setError]=useState("");
  const [attempts,setAttempts]=useState<Attempt[]>([]),[usedSlot,setUsedSlot]=useState<number|null>(null),[copied,setCopied]=useState(false);
  const [vaultOwner,setVaultOwner]=useState<string|null>(null);
@@ -117,7 +118,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
    </div>
    {vaultMessage&&<p role="status" className="tf-gemini-vault-message">{vaultMessage}</p>}
   </div>
-  <div className="tf-gemini-settings"><div><h4>2. Pilihan model & sasaran</h4><p>Jawatan sasaran: <strong>{role}</strong></p></div><label>Model Gemini<select value={model} onChange={e=>setModel(e.target.value)} disabled={busy}>{MODELS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select></label></div>
+  <div className="tf-gemini-settings"><div><h4>2. Pilihan model & sasaran</h4><p>Jawatan sasaran: <strong>{role}</strong></p></div><label>Model Gemini<select value={model} onChange={e=>setModel(e.target.value)} disabled={busy}>{GEMINI_MODELS.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select></label></div>
   <div className="tf-gemini-quota"><AlertTriangle size={18}/><p><strong>Kuota tidak semestinya bertambah dengan banyak key.</strong> Google menetapkan kebanyakan had penggunaan mengikut projek Google Cloud, bukan setiap key. Jika semua key daripada projek sama, bertukar key mungkin tidak menyelesaikan had kuota. Pastikan penggunaan setiap key mematuhi polisi Google dan tetapan billing anda.</p></div>
   <label className="tf-ai-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> Saya faham API key saya akan dihantar ke pelayan Talentfolio AI untuk panggilan Gemini, dan data kemahiran, projek, pendidikan, pengalaman serta nama sijil saya akan dihantar kepada Google untuk dianalisis. Saya bersetuju meneruskan.</label>
   <div className="tf-gemini-run"><button type="button" className="tf-btn tf-btn-outline" disabled={busy||testing||valid.length===0} onClick={()=>void testConnection()}><KeyRound size={15}/>{testing?"Menguji sambungan...":"Uji Sambungan Gemini"}</button><button className="tf-btn" type="button" disabled={busy||!consent||valid.length===0||skills.length===0} onClick={()=>void analyze()}><Sparkles size={16}/>{busy?"Gemini sedang menganalisis…":"Generate Skills Analysis (Gemini)"}</button><span>{!valid.length?"Masukkan sekurang-kurangnya 1 API key.":!consent?"Tandakan persetujuan sebelum menjana analisis.":"Sedia menjana analisis berdasarkan profil anda."}</span></div>
