@@ -49,6 +49,16 @@ export default function Workspace(){
  const [noindex,setNoindex]=useState(false);
  const [openToOpportunities,setOpenToOpportunities]=useState(false);
  const [publishConfirmation,setPublishConfirmation]=useState<"publish"|"unpublish"|null>(null);
+ const [deleteConfirmation,setDeleteConfirmation]=useState<null|{
+  kind:"project"|"certificate";id:string;title:string;
+ }>(null);
+ const [undoProject,setUndoProject]=useState<Project|null>(null);
+ useEffect(()=>{
+  if(!undoProject)return;
+  const timer=window.setTimeout(()=>setUndoProject(null),6000);
+  return()=>window.clearTimeout(timer);
+ },[undoProject]);
+
 
  const refresh=useCallback(async (uid:string)=>{
    const [p,j,c,s,pub,ed,w,gallery]=await Promise.all([
@@ -147,6 +157,67 @@ export default function Workspace(){
   }
  }
 
+ async function deleteConfirmed(){
+  const current=deleteConfirmation;
+  setDeleteConfirmation(null);
+  if(!current)return;
+
+  await run(async()=>{
+   if(current.kind==="project"){
+    const project=projects.find(item=>item.id===current.id);
+    if(!project)throw new Error("Projek tidak ditemui.");
+    const paths=projectImages.filter(image=>image.project_id===project.id)
+      .map(image=>image.storage_path);
+    const {error}=await client.from("projects").delete()
+      .eq("id",project.id).eq("user_id",userId);
+    if(error)throw error;
+
+    if(paths.length){
+     const cleanup=await client.storage.from("project-gallery").remove(paths);
+     if(cleanup.error){
+      throw new Error("Rekod dipadam tetapi fail galeri memerlukan pembersihan lanjut.");
+     }
+    }else{
+     setUndoProject(project);
+    }
+    setNotice(paths.length
+      ?"Projek bersama galeri telah dipadam."
+      :"Projek dipadam. Buat Asal tersedia selama 6 saat.");
+   }else{
+    const certificate=certs.find(item=>item.id===current.id);
+    if(!certificate)throw new Error("Sijil tidak ditemui.");
+    const {error}=await client.from("certificates").delete()
+      .eq("id",certificate.id).eq("user_id",userId);
+    if(error)throw error;
+    if(certificate.storage_path){
+     const removal=await client.storage.from("certificates")
+       .remove([certificate.storage_path]);
+     if(removal.error)throw new Error("Metadata dipadam, fail masih perlu dibersihkan.");
+    }
+    setNotice("Sijil berjaya dipadam.");
+   }
+  });
+ }
+
+ async function undoProjectDeletion(){
+  const original=undoProject;
+  if(!original)return;
+  await run(async()=>{
+   const {error}=await client.from("projects").insert({
+    id:original.id,
+    user_id:userId,
+    title:original.title,
+    description:original.description,
+    url:original.url,
+    is_public:original.is_public,
+    created_at:original.created_at
+   });
+   if(error)throw error;
+   setUndoProject(null);
+   setNotice("Projek dipulihkan.");
+  });
+ }
+
  const protectedNotice=<div className="tf-notice" role="status">{notice}<button onClick={()=>setNotice("")} aria-label="Tutup mesej"><X size={14}/></button></div>;
  function emptyBox(title:string,desc:string){return <div className="tf-empty"><div className="tf-emptyicon"><BookOpen size={26}/></div><b>{title}</b><p>{desc}</p></div>}
  return <div className={`tf-app ${dashboardTheme==="neumorph"?"tf-neumorph":""}`}><aside className={`tf-sidebar ${mobile?"opened":""}`}><Link href="/" className="tf-brand"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><span>Talentfolio AI<small>YOUR GROWTH WORKSPACE</small></span></Link>
@@ -157,6 +228,10 @@ export default function Workspace(){
  <div className="tf-main"><header className="tf-topbar"><div className="tf-top-left"><button className="tf-menu" onClick={()=>setMobile(!mobile)} aria-label="Buka menu"><Menu size={20}/></button><span>Workspace <span style={{color:"#afbacb"}}>/</span> <strong>{pageTitle}</strong></span></div>
  <div className="tf-top-right"><button type="button" className="tf-theme-toggle" aria-label={dark?"Aktifkan light mode":"Aktifkan dark mode"} title={dark?"Light Mode":"Dark Mode"} onClick={toggleDark}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button><span className="tf-online"><span/> Personal workspace</span><Link href="/profile" aria-label="Profil" className="tf-avatar">{profile.avatar_url?<img src={profile.avatar_url} alt="Foto profil"/>:username.slice(0,2).toUpperCase()}</Link></div></header>
  <main className="tf-content">{notice&&protectedNotice}
+ {undoProject&&<div className="tf-undo-toast" role="status">
+  <span>Projek "{undoProject.title}" dipadam. Anda boleh memulihkannya dalam 6 saat.</span>
+  <button type="button" onClick={()=>void undoProjectDeletion()} disabled={busy}>Buat Asal</button>
+ </div>}
  {loading?<div className="tf-loading"><RefreshCw className="tf-spin"/> Memuatkan ruang kerja anda...</div>:!userId?<div className="tf-signedout"><div className="tf-brandicon tf-logo-mark"><img src="/talentfolio-mark.svg" alt="" width="38" height="38"/></div><h1>Ruang kerja profesional anda</h1><p>Daftar atau log masuk untuk menyimpan profil, sijil, projek dan kemahiran secara selamat.</p><Link className="tf-btn" href="/auth">Daftar / Log masuk <ArrowRight size={16}/></Link><Link href="/" className="tf-link">Lihat laman utama</Link></div>:<>
  {section==="dashboard"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL WORKSPACE</div><h1>Welcome back, {username.split(" ")[0]} <span>👋</span></h1><p>Everything about your professional journey, in one place.</p></div><div className="tf-form-actions"><button type="button" className="tf-dashboard-theme-switch" disabled={busy} onClick={()=>void run(async()=>{const next=dashboardTheme==="default"?"neumorph":"default";const {error}=await client.from("dashboard_preferences").upsert({user_id:userId,theme:next,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error)throw error;setDashboardTheme(next);})}><Sparkles size={15}/>{dashboardTheme==="default"?"Soft Neumorphism":"Default Theme"}</button><Link className="tf-btn tf-btn-outline" href="/portfolio"><ExternalLink size={15}/> View Portfolio</Link></div></div>
  <div className="tf-welcome"><div><small>✦ YOUR PROFESSIONAL JOURNEY</small><h2>Build your future,<br/> one skill at a time.</h2><p>Profil anda {Math.round(completion)}% lengkap. Tambah projek atau sijil untuk menyerlahkan pengalaman dan kebolehan anda.</p><Link className="tf-btn tf-btn-white" href="/profile">Continue Building <ArrowRight size={15}/></Link></div><div className="tf-welcome-orb"/></div>
@@ -177,10 +252,7 @@ export default function Workspace(){
  {section==="projects"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">YOUR WORK</div><h1>Featured Projects</h1><p>Dokumentasikan hasil kerja dan pilih projek untuk portfolio awam.</p></div></div>
  <div className="tf-two"><form className="tf-card tf-section tf-form" onSubmit={e=>{e.preventDefault();void run(async()=>{if(projectForm.url&&!onlyHttp(projectForm.url))throw new Error("Gunakan URL http/https yang sah.");const {error}=await client.from("projects").insert({user_id:userId,...projectForm,url:projectForm.url||null});if(error)throw error;setProjectForm({title:"",description:"",url:"",is_public:true});setNotice("Projek ditambah.")})}}>
  <div className="tf-card-head"><h3>Add New Project</h3><Plus size={18}/></div><label>Nama projek<input required maxLength={120} value={projectForm.title} onChange={e=>setProjectForm({...projectForm,title:e.target.value})}/></label><label>Penerangan<textarea rows={4} maxLength={2000} value={projectForm.description} onChange={e=>setProjectForm({...projectForm,description:e.target.value})}/></label><label>Pautan projek (pilihan)<input type="url" value={projectForm.url} onChange={e=>setProjectForm({...projectForm,url:e.target.value})} placeholder="https://..."/></label><label className="tf-checkbox"><input type="checkbox" checked={projectForm.is_public} onChange={e=>setProjectForm({...projectForm,is_public:e.target.checked})}/> Boleh dipaparkan dalam portfolio apabila diterbitkan</label><button className="tf-btn" disabled={busy}><Plus size={15}/> Tambah Projek</button></form>
- <div className="tf-card tf-section"><div className="tf-card-head"><h3>Project Library</h3><span className="tf-pill">{projects.length} projek</span></div>{!projects.length?emptyBox("Tiada projek","Projek pertama anda akan dipaparkan di sini."):projects.map(p=><div className="tf-listrow" key={p.id}><div className="tf-list-icon"><FolderKanban size={19}/></div><div><b>{p.title}</b><p>{p.description||"Tanpa penerangan"}</p><small>{p.is_public?"Portfolio enabled":"Private"}</small>{p.url&&onlyHttp(p.url)&&<a href={onlyHttp(p.url)||"#"} target="_blank" rel="noopener noreferrer" className="tf-text-link"> View ↗</a>}</div><button aria-label={`Padam ${p.title}`} title="Padam projek" className="tf-iconbutton" disabled={busy} onClick={()=>{if(!confirm("Padam projek ini?"))return;void run(async()=>{const paths=projectImages.filter(im=>im.project_id===p.id).map(im=>im.storage_path);
- const {error}=await client.from("projects").delete().eq("id",p.id).eq("user_id",userId);if(error)throw error;
- if(paths.length){const {error:storageError}=await client.storage.from("project-gallery").remove(paths);if(storageError)throw new Error("Projek dipadam tetapi fail galeri mungkin masih tersedia: "+storageError.message);}
- setNotice("Projek dan gambar berkaitan dipadam.")})}}><Trash2 size={16}/></button></div>)}</div></div><ProjectGalleryEditor userId={userId} projects={projects} onChanged={()=>refresh(userId)}/></>}
+ <div className="tf-card tf-section"><div className="tf-card-head"><h3>Project Library</h3><span className="tf-pill">{projects.length} projek</span></div>{!projects.length?emptyBox("Tiada projek","Projek pertama anda akan dipaparkan di sini."):projects.map(p=><div className="tf-listrow" key={p.id}><div className="tf-list-icon"><FolderKanban size={19}/></div><div><b>{p.title}</b><p>{p.description||"Tanpa penerangan"}</p><small>{p.is_public?"Portfolio enabled":"Private"}</small>{p.url&&onlyHttp(p.url)&&<a href={onlyHttp(p.url)||"#"} target="_blank" rel="noopener noreferrer" className="tf-text-link"> View ↗</a>}</div><button aria-label={`Padam ${p.title}`} title="Padam projek" className="tf-iconbutton" disabled={busy} onClick={()=>setDeleteConfirmation({kind:"project",id:p.id,title:p.title})}><Trash2 size={16}/></button></div>)}</div></div><ProjectGalleryEditor userId={userId} projects={projects} onChanged={()=>refresh(userId)}/></>}
  {section==="certificates"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">SECURE DIGITAL CREDENTIALS</div><h1>Certificate Vault</h1><p>Simpan, urus dan akses sijil peribadi anda dengan selamat.</p></div><span className="tf-pill"><ShieldCheck size={14}/> Private Storage</span></div>
  <form className="tf-upload tf-form" onSubmit={e=>{e.preventDefault();void run(async()=>{if(!certFile)throw new Error("Sila pilih fail sijil.");if(certFile.size>5*1024*1024)throw new Error("Fail melebihi had 5 MB.");if(!["application/pdf","image/jpeg","image/png"].includes(certFile.type))throw new Error("Hanya PDF, PNG dan JPG dibenarkan.");
  const path=`${userId}/${crypto.randomUUID()}.${certFile.type==="application/pdf"?"pdf":certFile.type==="image/png"?"png":"jpg"}`;
@@ -189,7 +261,7 @@ export default function Workspace(){
  setCertForm({name:"",issuer:"",issued_on:""});setCertFile(null);const f=document.getElementById("certUpload") as HTMLInputElement|null;if(f)f.value="";setNotice("Sijil berjaya dimuat naik.");})}}>
  <div className="tf-uploadheading"><UploadCloud size={29}/><div><b>Upload certificates & credentials</b><p>PDF, PNG atau JPG · Maksimum 5 MB · Storan peribadi</p></div></div><div className="tf-formgrid"><label>Nama sijil<input required maxLength={160} value={certForm.name} onChange={e=>setCertForm({...certForm,name:e.target.value})}/></label><label>Institusi penerbit<input maxLength={160} value={certForm.issuer} onChange={e=>setCertForm({...certForm,issuer:e.target.value})}/></label><label>Tarikh dikeluarkan<input type="date" value={certForm.issued_on} onChange={e=>setCertForm({...certForm,issued_on:e.target.value})}/></label><label>Fail sijil<input id="certUpload" required type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/jpeg,image/png" onChange={e=>setCertFile(e.target.files?.[0]||null)}/></label></div><button className="tf-btn" disabled={busy}><Plus size={15}/> {busy?"Memproses...":"Add Certificate"}</button></form>
  <div className="tf-filterbar"><div className="tf-segments">{[["all","All certificates"],["self_uploaded","Self-uploaded"],["pending","Pending"],["verified","Verified"]].map(([val,label])=><button key={val} className={filter===val?"active":""} onClick={()=>setFilter(val)}>{label}</button>)}</div><label className="tf-search"><Search size={15}/><input aria-label="Cari sijil" placeholder="Search certificates..." value={q} onChange={e=>setQ(e.target.value)}/></label></div>
- <div className="tf-certgrid">{certs.filter(c=>(filter==="all"||c.verification_status===filter)&&c.name.toLowerCase().includes(q.toLowerCase())).length===0?emptyBox("Tiada sijil ditemui","Cuba ubah penapis atau muat naik sijil baru."):certs.filter(c=>(filter==="all"||c.verification_status===filter)&&c.name.toLowerCase().includes(q.toLowerCase())).map(c=><article key={c.id} className="tf-certificate"><div className="tf-certificate-art"><Award size={32}/><span>CERTIFICATE OF ACHIEVEMENT</span></div><h3>{c.name}</h3><p>{c.issuer||"Penerbit tidak dinyatakan"} · {dateText(c.issued_on||c.created_at)}</p><div className="tf-certfoot"><span className="tf-pill">{c.verification_status==="verified"?"Verified":c.verification_status==="pending"?"Pending":"Self-uploaded"}</span><div><button title="Muat turun" aria-label={`Muat turun ${c.name}`} className="tf-iconbutton" onClick={()=>{void run(async()=>{if(!c.storage_path)throw new Error("Fail tidak tersedia.");const {data,error}=await client.storage.from("certificates").createSignedUrl(c.storage_path,60);if(error)throw error;window.open(data.signedUrl,"_blank","noopener,noreferrer")})}}><Download size={17}/></button><button title="Padam" aria-label={`Padam ${c.name}`} disabled={busy} className="tf-iconbutton" onClick={()=>{if(!confirm("Padam sijil dan fail ini?"))return;void run(async()=>{const {error}=await client.from("certificates").delete().eq("id",c.id).eq("user_id",userId);if(error)throw error;if(c.storage_path){const d=await client.storage.from("certificates").remove([c.storage_path]);if(d.error)throw new Error("Metadata dipadam tetapi fail gagal dibuang: "+d.error.message)}setNotice("Sijil dipadam.")})}}><Trash2 size={17}/></button></div></div></article>)}</div>
+ <div className="tf-certgrid">{certs.filter(c=>(filter==="all"||c.verification_status===filter)&&c.name.toLowerCase().includes(q.toLowerCase())).length===0?emptyBox("Tiada sijil ditemui","Cuba ubah penapis atau muat naik sijil baru."):certs.filter(c=>(filter==="all"||c.verification_status===filter)&&c.name.toLowerCase().includes(q.toLowerCase())).map(c=><article key={c.id} className="tf-certificate"><div className="tf-certificate-art"><Award size={32}/><span>CERTIFICATE OF ACHIEVEMENT</span></div><h3>{c.name}</h3><p>{c.issuer||"Penerbit tidak dinyatakan"} · {dateText(c.issued_on||c.created_at)}</p><div className="tf-certfoot"><span className="tf-pill">{c.verification_status==="verified"?"Verified":c.verification_status==="pending"?"Pending":"Self-uploaded"}</span><div><button title="Muat turun" aria-label={`Muat turun ${c.name}`} className="tf-iconbutton" onClick={()=>{void run(async()=>{if(!c.storage_path)throw new Error("Fail tidak tersedia.");const {data,error}=await client.storage.from("certificates").createSignedUrl(c.storage_path,60);if(error)throw error;window.open(data.signedUrl,"_blank","noopener,noreferrer")})}}><Download size={17}/></button><button title="Padam" aria-label={`Padam ${c.name}`} disabled={busy} className="tf-iconbutton" onClick={()=>setDeleteConfirmation({kind:"certificate",id:c.id,title:c.name})}><Trash2 size={17}/></button></div></div></article>)}</div>
  <p className="tf-warning"><ShieldCheck size={17}/> Sijil yang dimuat naik sendiri tidak dianggap disahkan. Status Verified memerlukan pengesahan daripada penerbit sijil.</p></>}
  {section==="skills"&&<><div className="tf-headingrow"><div><div className="tf-eyebrow">PERSONAL DEVELOPMENT INTELLIGENCE</div><h1>Skills Intelligence</h1><p>Rekod kompetensi kendiri, banding keperluan jawatan dan bina pelan perkembangan.</p></div><span className="tf-pill"><Sparkles size={14}/> Evidence-first</span></div>
  <div className="tf-stats tf-three">{[[skills.length,"Skills Recorded",Sparkles],[projects.length+certs.length,"Evidence Items",Award],[gaps.filter(x=>x.gap>0).length,"Growth Priorities",Target]].map(([n,l,I])=>{const Icon=I as typeof Sparkles;return <div className="tf-stat" key={String(l)}><div><span>{String(l)}</span><span className="tf-stat-icon"><Icon size={18}/></span></div><strong>{String(n).padStart(2,"0")}</strong><small>Current account data</small></div>})}</div>
@@ -349,5 +421,17 @@ export default function Workspace(){
    <p className="tf-publication-hint">Tidak termasuk sijil peribadi atau e-mel akaun. {noindex?"Enjin carian diminta untuk tidak mengindeks halaman ini.":"Halaman boleh diindeks oleh enjin carian."}</p>
   </>}
  </ConfirmDialog>
+
+ <ConfirmDialog
+  open={deleteConfirmation!==null}
+  title={deleteConfirmation?.kind==="project"?"Padam projek?":"Padam sijil?"}
+  description={deleteConfirmation?.kind==="project"
+   ?`Projek "${deleteConfirmation.title}" dan gambar galerinya akan dipadam. Projek tanpa galeri boleh dipulihkan dalam 6 saat.`
+   :`Sijil "${deleteConfirmation?.title||""}" dan fail berkaitannya akan dipadam secara kekal.`}
+  confirmLabel={deleteConfirmation?.kind==="project"?"Padam Projek":"Padam Sijil"}
+  danger busy={busy}
+  onClose={()=>setDeleteConfirmation(null)}
+  onConfirm={()=>void deleteConfirmed()}
+ />
  <div className="tf-footer">© {new Date().getFullYear()} Talentfolio AI · Privacy-first portfolio workspace · Free MVP</div></div></div>;
 }
