@@ -13,12 +13,37 @@ export function printCareerReport(reportElement:HTMLElement){
  const base=doc.createElement("base");base.href=window.location.origin+"/";
  const style=doc.createElement("style");style.textContent=printCss;
  doc.head.replaceChildren(charset,viewport,base,style);
- doc.body.replaceChildren(doc.importNode(reportElement,true));
- const images=Array.from(doc.images);
- for(const img of images)img.loading="eager";
+ const clone=doc.importNode(reportElement,true);
+ const originals=Array.from(reportElement.querySelectorAll("img"));
+ const images=Array.from(clone.querySelectorAll("img"));
+ // Resolve sources in the opener, not the about:blank popup.  Embed same-origin
+ // partner artwork so printing does not rely on a second relative asset request.
+ images.forEach((img,index)=>{
+  const source=originals[index];
+  img.removeAttribute("srcset");
+  img.removeAttribute("sizes");
+  img.loading="eager";
+  if(source)img.src=source.currentSrc||source.src;
+ });
+ doc.body.replaceChildren(clone);
  popup.focus();
  const imagesReady=images.map(async img=>{
-  try{await img.decode()}catch{/* A failed logo must not block the document. */}
+  try{
+   const url=new URL(img.src,window.location.href);
+   if(url.origin===window.location.origin&&url.pathname.startsWith("/partners/")){
+    const response=await fetch(url,{signal:AbortSignal.timeout(5000),credentials:"same-origin"});
+    if(!response.ok)throw Error("Partner image unavailable");
+    const blob=await response.blob();
+    const embedded=await new Promise<string>((resolve,reject)=>{
+     const reader=new FileReader();
+     reader.onload=()=>resolve(String(reader.result));
+     reader.onerror=()=>reject(reader.error);
+     reader.readAsDataURL(blob);
+    });
+    img.src=embedded;
+   }
+   await img.decode();
+  }catch{/* Keep the absolute source/alt text; a failed logo must not block printing. */}
  });
  let timer:number|undefined;
  const deadline=new Promise<void>(resolve=>{timer=popup.setTimeout(resolve,8000)});
