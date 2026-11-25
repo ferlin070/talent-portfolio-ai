@@ -6,6 +6,13 @@ import {
 } from "lucide-react";
 import { type PublishedImage } from "@/components/project-gallery-public";
 
+function validWebsite(raw:string){
+ try{
+  const url=new URL(raw);
+  return url.protocol==="https:"||url.protocol==="http:"?url.toString():null;
+ }catch{return null;}
+}
+
 export type PublicPortfolioSnapshot = {
   name?:string;headline?:string;bio?:string;location?:string;
   website?:string;avatar?:string;open_to_opportunities?:boolean;
