@@ -131,7 +131,9 @@ export async function readJsonBody<T>(
   }
 
   try {
-    return JSON.parse(new TextDecoder().decode(merged)) as T;
+    const parsed:unknown=JSON.parse(new TextDecoder().decode(merged));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Input mesti objek JSON.");
+    return parsed as T;
   } catch {
     throw new Error("Format JSON tidak sah.");
   }

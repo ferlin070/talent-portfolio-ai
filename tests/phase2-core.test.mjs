@@ -100,3 +100,39 @@ test("auth redirects stay same-origin and preserve workspace deep links", () => 
   assert.equal(safeNext("/resume?template=modern#cv"), "/resume?template=modern#cv");
   assert.equal(safeNext("/portfolio"), "/portfolio");
 });
+
+
+import { verifyCareerReport } from "../lib/career-validation.ts";
+import { parseCareerReport } from "../lib/career-report.ts";
+
+const reportSections=[
+ ["1. Tiga Kekuatan Utama",3],
+ ["2. Empat Jurang Kemahiran",4],
+ ["3. Pelan Belajar 30/60/90 Hari",3],
+ ["4. Dua Projek Praktikal",2],
+ ["5. Soalan untuk Melengkapkan Data",2],
+].map(([title,count])=>"### "+title+"\n"+Array.from({length:count},(_,i)=>"- **Bukti "+(i+1)+":** Contoh sintetik untuk menguji kelengkapan laporan & kesamaan kandungan. Cadangan langkah praktikal yang boleh dibuktikan.").join("\n"));
+const reportOf=(sections=reportSections)=>["Ringkasan sintetik.",...sections,"TAMAT_LAPORAN"].join("\n\n");
+
+test("Gemini report accepts five ordered complete sections and strips terminal marker",()=>{
+ const checked=verifyCareerReport(reportOf(),"STOP");
+ assert.equal(checked.complete,true,checked.issues.join(" "));
+ assert.ok(!checked.clean.includes("TAMAT_LAPORAN"));
+ const parsed=parseCareerReport(checked.clean);
+ assert.deepEqual(parsed.sections.map(s=>s.kind),["strength","gap","roadmap","project","question"]);
+ assert.deepEqual(parsed.sections.map(s=>s.blocks.length),[3,4,3,2,2]);
+});
+
+test("Gemini report rejects truncation, joined or repeated markers and reordered sections",()=>{
+ const report=reportOf();
+ for(const candidate of [report.replace(/\n\nTAMAT_LAPORAN$/,""),report.replace(/\n\nTAMAT_LAPORAN$/," TAMAT_LAPORAN"),report.replace("Ringkasan sintetik.","TAMAT_LAPORAN"),reportOf([reportSections[1],reportSections[0],...reportSections.slice(2)]),reportOf(reportSections.slice(0,4))]){
+   assert.equal(verifyCareerReport(candidate,"STOP").complete,false);
+ }
+ assert.equal(verifyCareerReport(report,"MAX_TOKENS").complete,false);
+});
+
+test("shared print and Word report parser preserves text and removes Markdown separators",()=>{
+ const parsed=parseCareerReport("Ringkasan & fakta <ujian>\n---\n### 1. Kekuatan\n- **Bukti:** A & B\n  sambungan isi\n***\nTAMAT_LAPORAN");
+ assert.deepEqual(parsed.intro,[{type:"paragraph",text:"Ringkasan & fakta <ujian>"}]);
+ assert.deepEqual(parsed.sections[0].blocks,[{type:"bullet",text:"**Bukti:** A & B sambungan isi"}]);
+});
