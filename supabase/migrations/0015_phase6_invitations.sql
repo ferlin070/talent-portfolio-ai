@@ -5,7 +5,7 @@ REVOKE ALL ON SCHEMA tf_institution_private FROM PUBLIC,anon,authenticated;
 CREATE TABLE tf_institution_private.invitations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
- issued_by uuid NOT NULL REFERENCES auth.users(id),
+ issued_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
  recipient_email text NOT NULL CHECK (char_length(recipient_email) BETWEEN 3 AND 254),
  role text NOT NULL CHECK (role IN ('student','lecturer')),
  token_digest bytea NOT NULL UNIQUE CHECK (octet_length(token_digest)=32),
@@ -13,7 +13,7 @@ CREATE TABLE tf_institution_private.invitations (
  expires_at timestamptz NOT NULL,
  revoked_at timestamptz,
  accepted_at timestamptz,
- accepted_by uuid REFERENCES auth.users(id),
+ accepted_by uuid REFERENCES auth.users(id) ON DELETE CASCADE,
  CHECK (expires_at>created_at AND expires_at<=created_at+interval '7 days'),
  CHECK ((accepted_at IS NULL)=(accepted_by IS NULL)),
  CHECK (accepted_at IS NULL OR revoked_at IS NULL)
@@ -59,7 +59,7 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $in
 DECLARE caller uuid:=auth.uid(); caller_email text; digest_value bytea; record_invite tf_institution_private.invitations%ROWTYPE;
 BEGIN
  IF caller IS NULL THEN RAISE EXCEPTION 'Verified session required' USING ERRCODE='42501'; END IF;
- SELECT lower(btrim(u.email)) INTO caller_email FROM auth.users u WHERE u.id=caller AND u.email_confirmed_at IS NOT NULL;
+ SELECT lower(btrim(u.email)) INTO caller_email FROM auth.users u WHERE u.id=caller AND u.email_confirmed_at IS NOT NULL FOR SHARE;
  IF caller_email IS NULL OR p_token IS NULL OR p_token !~ '^[a-f0-9]{64}$' THEN
   RAISE EXCEPTION 'Invitation unavailable' USING ERRCODE='42501';
  END IF;
