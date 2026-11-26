@@ -101,4 +101,37 @@ END $invite$;
 REVOKE ALL ON FUNCTION public.tf_issue_institution_invite(uuid,text,text),public.tf_accept_institution_invite(text),public.tf_revoke_institution_invite(uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.tf_issue_institution_invite(uuid,text,text),public.tf_accept_institution_invite(text),public.tf_revoke_institution_invite(uuid,uuid) TO authenticated;
 COMMENT ON TABLE tf_institution_private.invitations IS 'Private invitation metadata and SHA-256 token digests only. No token recovery. No automatic email delivery.';
+
+-- Read-only recipient preview. Acceptance independently rechecks every condition.
+CREATE FUNCTION public.tf_preview_institution_invite(p_token text)
+RETURNS TABLE(institution_name text, invite_role text, valid_until timestamptz)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $invite$
+ SELECT i.name,v.role,v.expires_at
+ FROM tf_institution_private.invitations v
+ JOIN public.institutions i ON i.id=v.institution_id AND i.status='active'
+ JOIN public.institution_memberships m ON m.institution_id=i.id AND m.user_id=v.issued_by AND m.status='active' AND m.role='institution_admin'
+ JOIN auth.users u ON u.id=auth.uid() AND u.email_confirmed_at IS NOT NULL AND lower(btrim(u.email))=v.recipient_email
+ WHERE p_token ~ '^[a-f0-9]{64}$' AND v.token_digest=sha256(convert_to(p_token,'UTF8'))
+ AND v.expires_at>now() AND v.revoked_at IS NULL AND v.accepted_at IS NULL
+ AND NOT EXISTS(SELECT 1 FROM public.institution_memberships own WHERE own.institution_id=i.id AND own.user_id=u.id);
+$invite$;
+
+-- Admin history contains no token or digest; maximum 100 recent rows.
+CREATE FUNCTION public.tf_list_institution_invites(p_institution uuid)
+RETURNS TABLE(invite_id uuid,recipient_email text,invite_role text,valid_until timestamptz,invite_status text)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $invite$
+DECLARE caller uuid:=auth.uid();
+BEGIN
+ IF caller IS NULL OR NOT EXISTS(SELECT 1 FROM auth.users u WHERE u.id=caller AND u.email_confirmed_at IS NOT NULL)
+ OR NOT EXISTS(SELECT 1 FROM public.institutions i JOIN public.institution_memberships m ON m.institution_id=i.id
+ WHERE i.id=p_institution AND i.status='active' AND m.user_id=caller AND m.status='active' AND m.role='institution_admin') THEN
+  RAISE EXCEPTION 'Invitation unavailable' USING ERRCODE='42501';
+ END IF;
+ RETURN QUERY SELECT v.id,v.recipient_email,v.role,v.expires_at,
+ CASE WHEN v.accepted_at IS NOT NULL THEN 'accepted' WHEN v.revoked_at IS NOT NULL THEN 'revoked' WHEN v.expires_at<=now() THEN 'expired' ELSE 'pending' END
+ FROM tf_institution_private.invitations v WHERE v.institution_id=p_institution
+ ORDER BY v.created_at DESC,v.id LIMIT 100;
+END $invite$;
+REVOKE ALL ON FUNCTION public.tf_preview_institution_invite(text),public.tf_list_institution_invites(uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.tf_preview_institution_invite(text),public.tf_list_institution_invites(uuid) TO authenticated;
 COMMIT;
