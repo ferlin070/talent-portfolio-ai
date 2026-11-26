@@ -36,3 +36,36 @@ test("interview prompts reflect selected role and avoid fabricated credentials",
  assert.equal(buildInterviewQuestions("Data Analyst",[]).length,4);
  assert.ok(questions.every(q=>q.hint.length>0));
 });
+
+import {reviewResume,buildCoverLetter} from "../lib/application-studio.ts";
+
+test("resume review detects bounded punctuation-aware terms and bilingual headings",()=>{
+ const result=reviewResume("Ringkasan:\nQA student\nKemahiran\nMySQL, React, C++, C#, .NET, Node.js, Git.\nPendidikan\nProjek\nSynthetic demo","SQL\nReact\nC\nC++\nC#\n.NET\nNode.js\nGit");
+ assert.deepEqual(result.entries.map(r=>r.matched),[false,true,false,true,true,true,true,true]);
+ assert.equal(result.coverage,75);
+ assert.ok(result.sections.every(s=>s.found));
+ assert.equal(reviewResume("Git","Git").sections.some(s=>s.found),false);
+});
+test("resume review rejects empty and oversized inputs and limits keywords",()=>{
+ assert.throws(()=>reviewResume(" ","Git"),/resume/);
+ assert.throws(()=>reviewResume("Git"," "),/syarat/);
+ assert.throws(()=>reviewResume("x".repeat(20001),"Git"),/20,000/);
+ assert.throws(()=>reviewResume("Git",Array.from({length:26},(_,i)=>"skill "+i).join("\n")),/25/);
+});
+const letterFixture={name:"QA Alpha",role:"Cloud Engineer",company:"Example Company",language:"ms",evidence:[{id:"skill:1",kind:"skill",label:"Linux"},{id:"project:1",kind:"project",label:"Synthetic Demo"}]};
+test("cover letters use only selected evidence, correct language and no invented credentials",()=>{
+ const ms=buildCoverLetter(letterFixture),en=buildCoverLetter({...letterFixture,language:"en"});
+ assert.match(ms,/PERMOHONAN JAWATAN: Cloud Engineer/);
+ assert.match(en,/APPLICATION FOR: Cloud Engineer/);
+ assert.match(ms,/Kemahiran direkodkan: Linux/);
+ assert.match(en,/Project: Synthetic Demo/);
+ for(const s of [ms,en]){assert.match(s,/QA Alpha/);assert.match(s,/Example Company/);assert.doesNotMatch(s,/certified|pakar|years of experience|private/i)}
+ assert.doesNotMatch(buildCoverLetter({...letterFixture,evidence:[letterFixture.evidence[0]]}),/Synthetic Demo/);
+});
+test("cover letter requires explicit evidence and prevents multiline field injection",()=>{
+ assert.throws(()=>buildCoverLetter({...letterFixture,company:" "}),/Organisasi/);
+ assert.throws(()=>buildCoverLetter({...letterFixture,evidence:[]}),/rekod/);
+ assert.throws(()=>buildCoverLetter({...letterFixture,evidence:Array(7).fill(letterFixture.evidence[0])}),/enam/);
+ assert.throws(()=>buildCoverLetter({...letterFixture,name:"x".repeat(101)}),/Nama/);
+ assert.match(buildCoverLetter({...letterFixture,company:"Example\nCompany"}),/Example Company/);
+});
