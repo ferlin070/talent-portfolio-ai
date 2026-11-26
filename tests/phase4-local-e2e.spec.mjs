@@ -15,7 +15,7 @@ function checked(result,label){
 }
 
 test("real local Auth, owner isolation, nine published templates and unpublish",async({page,browser,request})=>{
- test.setTimeout(180000);
+ test.setTimeout(240000);
  // Hard fail rather than accidentally creating fixtures on a hosted database.
  if(process.env.CI!=="true"||url!=="http://127.0.0.1:54321"||!key||!service||key===service)throw Error("Disposable localhost Supabase is required");
  const admin=createClient(url,service,opts);
@@ -207,6 +207,42 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
   expect((await other.from("institution_programmes").insert({institution_id:tenantA,name:"Forbidden",code:"NO"})).error).toBeTruthy();
   await adminPage.setViewportSize({width:390,height:844});
   expect(await adminDirectory.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"Admin workspace mobile overflow").toBe(true);
+  const inviteAdmin=adminPage.getByRole("region",{name:"Jemput ahli institusi",exact:true});
+  const recipient=page.getByRole("region",{name:"Sertai institusi",exact:true});
+  await expect(inviteAdmin).toBeVisible();
+  await expect(page.getByRole("region",{name:"Jemput ahli institusi",exact:true})).toHaveCount(0);
+  await inviteAdmin.getByLabel("E-mel penerima").fill(emails[0]);
+  await inviteAdmin.getByLabel("Peranan jemputan").selectOption("student");
+  await inviteAdmin.getByRole("button",{name:"Cipta jemputan",exact:true}).click();
+  const tokenField=inviteAdmin.getByLabel("Token jemputan baharu");
+  await expect(tokenField).toBeVisible();
+  const invitationToken=await tokenField.inputValue();
+  expect(/^[a-f0-9]{64}$/.test(invitationToken)).toBe(true);
+  await inviteAdmin.getByRole("button",{name:"Tutup token",exact:true}).click();
+  await expect(tokenField).toHaveCount(0);
+  await expect(recipient.getByRole("button",{name:"Terima jemputan",exact:true})).toHaveCount(0);
+  await recipient.getByLabel("Token jemputan diterima").fill(invitationToken);
+  await recipient.getByRole("button",{name:"Semak jemputan",exact:true}).click();
+  await expect(recipient.getByText("Synthetic TVET B",{exact:true})).toBeVisible();
+  await recipient.getByRole("button",{name:"Terima jemputan",exact:true}).click();
+  await expect(recipient.getByText("Keahlian institusi berjaya diaktifkan.",{exact:true})).toBeVisible();
+  expect(checked(await owner.from("institution_memberships").select("role").eq("institution_id",tenantB).single(),"invited membership").role).toBe("student");
+  expect((await owner.rpc("tf_accept_institution_invite",{p_token:invitationToken})).error).toBeTruthy();
+  await inviteAdmin.getByRole("button",{name:"Muat semula jemputan"}).click();
+  await expect(inviteAdmin.getByText(/Diterima ·/)).toBeVisible();
+  // A second fixture tenant allows two independent simultaneous HTTP requests.
+  const tenantC=randomUUID();tenantIds.push(tenantC);
+  checked(await admin.from("institutions").insert({id:tenantC,name:"Synthetic Race Institution",slug:"tf6-"+suffix+"-c"}),"race tenant fixture");
+  checked(await admin.from("institution_memberships").insert({institution_id:tenantC,user_id:ids[1],role:"institution_admin"}),"race admin fixture");
+  const race=checked(await other.rpc("tf_issue_institution_invite",{p_institution:tenantC,p_email:emails[0],p_role:"lecturer"}),"race invitation")[0];
+  const independent=createClient(url,key,opts);
+  try{
+   checked(await independent.auth.signInWithPassword({email:emails[0],password}),"independent recipient session");
+   const outcomes=await Promise.all([owner.rpc("tf_accept_institution_invite",{p_token:race.invite_token}),independent.rpc("tf_accept_institution_invite",{p_token:race.invite_token})]);
+   expect(outcomes.filter(x=>!x.error&&x.data===tenantC).length).toBe(1);
+   expect(outcomes.filter(x=>!!x.error).length).toBe(1);
+   expect(checked(await owner.from("institution_memberships").select("role").eq("institution_id",tenantC),"one membership")).toEqual([{role:"lecturer"}]);
+  }finally{await independent.auth.signOut({scope:"local"})}
   const session=checked(await owner.auth.getSession(),"owner session").session;
   const headers={authorization:"Bearer "+session.access_token,origin};
   const endpoint=origin+"/api/portfolio/publish";
