@@ -128,4 +128,34 @@ BEGIN
  END;
 END $inviteqa$;
 RESET ROLE;
+UPDATE public.institution_memberships SET status='active' WHERE user_id='65000000-0000-4000-8000-000000000001';
+UPDATE public.institutions SET status='suspended' WHERE slug='tf6-invite-a';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000003',true);
+DO $inviteqa$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tf_preview_institution_invite(repeat('b',64))) THEN RAISE EXCEPTION 'Suspended tenant preview allowed'; END IF;
+ BEGIN
+  PERFORM public.tf_accept_institution_invite(repeat('b',64));
+  RAISE EXCEPTION 'Suspended tenant token accepted';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $inviteqa$;
+RESET ROLE;
+UPDATE public.institutions SET status='active' WHERE slug='tf6-invite-a';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000001',true);
+DO $inviteqa$
+DECLARE successes integer:=0; limited boolean:=false;
+BEGIN
+ FOR n IN 1..31 LOOP
+  BEGIN
+   PERFORM public.tf_issue_institution_invite('66000000-0000-4000-8000-000000000001','quota-'||n||'@example.invalid','student');
+   successes:=successes+1;
+  EXCEPTION WHEN invalid_parameter_value THEN limited:=true; EXIT;
+  END;
+ END LOOP;
+ IF NOT limited OR successes<>25 THEN RAISE EXCEPTION 'Unexpected hourly invitation quota: %',successes; END IF;
+END $inviteqa$;
+RESET ROLE;
 ROLLBACK;
