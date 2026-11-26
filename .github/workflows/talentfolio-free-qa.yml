@@ -1,7 +1,7 @@
 name: Talentfolio free local QA
 on:
   pull_request:
-    branches: [main, feature/phase3-premium-ui]
+    branches: [main, feature/phase3-premium-ui, feature/phase5-career-intelligence]
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 permissions:
@@ -86,6 +86,7 @@ jobs:
             psql_local < "$PWD/$migration"
           done
           psql_local < "$PWD/tests/phase4-local-db.sql"
+          psql_local < "$PWD/tests/phase6-institution.sql"
       - name: Drop disposable database
         if: always()
         run: sudo -u postgres dropdb --if-exists talentfolio_ci
@@ -118,6 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f tests/phase4-local-db.sql
+          PGPASSWORD=postgres psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f tests/phase6-institution.sql
       - name: Install dependencies for real local integration
         run: |
           set -euo pipefail
