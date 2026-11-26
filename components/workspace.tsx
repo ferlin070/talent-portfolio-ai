@@ -23,6 +23,7 @@ const ExpansionThemes=dynamic(()=>import("@/components/portfolio-expansion"),{lo
 const ProjectGalleryEditor=dynamic(()=>import("@/components/project-gallery-editor"),{loading:chunkPlaceholder});
 const SkillEditor=dynamic(()=>import("@/components/skill-editor"),{loading:chunkPlaceholder});
 const ApplicationStudio=dynamic(()=>import("@/components/application-studio"),{loading:chunkPlaceholder});
+const LearningTracker=dynamic(()=>import("@/components/learning-tracker"),{loading:chunkPlaceholder});
 const CareerStudio=dynamic(()=>import("@/components/career-studio"),{loading:chunkPlaceholder});
 const AIAnalysis=dynamic(()=>import("@/components/ai-skills-analysis"),{loading:chunkPlaceholder});
 const PromptGenerator=dynamic(()=>import("@/components/prompt-generator"),{loading:chunkPlaceholder});
@@ -322,6 +323,7 @@ export default function Workspace(){
   ...education.filter(e=>e.qualification.trim()&&e.institution.trim()).map(e=>({id:"education:"+e.id,kind:"education" as const,label:e.qualification+" — "+e.institution})),
   ...workHistory.filter(w=>w.role.trim()&&w.company.trim()).map(w=>({id:"experience:"+w.id,kind:"experience" as const,label:w.role+" — "+w.company}))
  ]}/>
+ <LearningTracker key={`${userId}:${desired.id}`} userId={userId} roleId={desired.id} role={desired.title} gaps={gaps}/>
  <AIAnalysis role={desired.title} skills={skills}/>
  <div className="tf-two"><section className="tf-card tf-section"><div className="tf-card-head"><div><h3>Competency Breakdown</h3><p>Tahap 1–5 yang dinilai oleh pengguna sendiri</p></div></div>{!skills.length?emptyBox("Tiada penilaian","Tambah kemahiran di bawah untuk memulakan analisis."):skills.map(s=><div className="tf-progress" key={s.id}><div><b>{s.name}</b><span>{s.self_rating||0}/5</span></div><div className="tf-track"><div style={{width:`${(s.self_rating||0)*20}%`}}/></div></div>)}
  <div className="tf-insight"><Sparkles size={17}/><span><b>Transparency first</b><br/>Skor ini ialah penilaian kendiri, bukan pengesahan profesional atau penilaian oleh model AI.</span></div></section>
