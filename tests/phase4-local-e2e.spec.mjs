@@ -22,6 +22,7 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
  const anon=createClient(url,key,opts);
  const clients=[createClient(url,key,opts),createClient(url,key,opts)];
  const ids=[];
+ const tenantIds=[];
  const suffix=randomUUID().slice(0,8);
  const emails=["a","b"].map(x=>"talentfolio-qa-"+x+"-"+suffix+"@example.com");
  const password="Qa-local-"+randomUUID();
@@ -149,6 +150,26 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
   await page.setViewportSize({width:390,height:844});
   expect(await tracker.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"Learning tracker mobile overflow").toBe(true);
   await page.setViewportSize({width:1440,height:900});
+  await page.goto(origin+"/institution");
+  const institution=page.getByRole("region",{name:"Institution Workspace",exact:true});
+  await expect(institution.getByText("Tiada keahlian institusi aktif",{exact:true})).toBeVisible({timeout:30000});
+  const tenantA=randomUUID(),tenantB=randomUUID(),programmeA=randomUUID(),programmeB=randomUUID(),cohortA=randomUUID(),cohortB=randomUUID();
+  tenantIds.push(tenantA,tenantB);
+  checked(await admin.from("institutions").insert([{id:tenantA,name:"Synthetic TVET A",slug:"tf6-"+suffix+"-a"},{id:tenantB,name:"Synthetic TVET B",slug:"tf6-"+suffix+"-b"}]),"local institution fixtures");
+  checked(await admin.from("institution_memberships").insert([{institution_id:tenantA,user_id:ids[0],role:"student"},{institution_id:tenantB,user_id:ids[1],role:"lecturer"}]),"local institution membership fixtures");
+  checked(await admin.from("institution_programmes").insert([{institution_id:tenantA,id:programmeA,name:"Synthetic Cloud",code:"CLD"},{institution_id:tenantB,id:programmeB,name:"Synthetic Private Network",code:"NET"}]),"local programme fixtures");
+  checked(await admin.from("institution_cohorts").insert([{institution_id:tenantA,programme_id:programmeA,id:cohortA,name:"Synthetic Cloud Cohort"},{institution_id:tenantB,programme_id:programmeB,id:cohortB,name:"Synthetic Other Cohort"}]),"local cohort fixtures");
+  checked(await admin.from("institution_cohort_assignments").insert({institution_id:tenantA,cohort_id:cohortA,user_id:ids[0],role:"student"}),"local cohort assignment");
+  await institution.getByRole("button",{name:"Muat semula keahlian"}).click();
+  await expect(institution.getByText("Synthetic TVET A · Pelajar",{exact:true})).toBeVisible();
+  await expect(institution.getByText("Synthetic Cloud Cohort",{exact:true})).toBeVisible();
+  await expect(institution.getByText("Synthetic Other Cohort",{exact:true})).toHaveCount(0);
+  expect(checked(await owner.from("institution_cohorts").select("id").eq("institution_id",tenantB),"cross-tenant read")).toEqual([]);
+  expect(checked(await other.from("institution_cohorts").select("id"),"unassigned lecturer read")).toEqual([]);
+  expect((await owner.from("institution_memberships").update({role:"institution_admin"}).eq("institution_id",tenantA).eq("user_id",ids[0])).error).toBeTruthy();
+  await page.setViewportSize({width:390,height:844});
+  expect(await institution.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"Institution workspace mobile overflow").toBe(true);
+  await page.setViewportSize({width:1440,height:900});
   const session=checked(await owner.auth.getSession(),"owner session").session;
   const headers={authorization:"Bearer "+session.access_token,origin};
   const endpoint=origin+"/api/portfolio/publish";
@@ -190,6 +211,7 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
  }finally{
   await publicContext.close();
   await Promise.allSettled(clients.map(c=>c.auth.signOut()));
+  if(tenantIds.length)await admin.from("institutions").delete().in("id",tenantIds);
   for(const id of ids)await admin.auth.admin.deleteUser(id);
  }
 });
