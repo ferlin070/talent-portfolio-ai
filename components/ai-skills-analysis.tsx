@@ -4,6 +4,7 @@ import {BrainCircuit,Copy,Sparkles,KeyRound,Plus,Trash2,Eye,EyeOff,ShieldCheck,A
 import Link from "next/link";
 import {getSupabaseClient} from "@/lib/supabase";
 import CareerReport from "@/components/career-report";
+import AICareerCoach from "@/components/ai-career-coach";
 import ConfirmDialog from "@/components/confirm-dialog";
 import {parseCareerReport} from "@/lib/career-report";
 import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/gemini-models";
@@ -133,6 +134,7 @@ export default function AIAnalysis({role,skills}:{role:string;skills:{name:strin
   {testMessage&&<p role="status" className="tf-hint" style={{marginBottom:15}}>{testMessage}</p>}
   {error&&<div className="tf-ai-error" role="alert">{error}{!!attempts.length&&<ul>{attempts.map(a=><li key={a.slot}>Percubaan key #{a.slot}{a.httpStatus?` · HTTP ${a.httpStatus}`:""}: {a.status}</li>)}</ul>}</div>}
   {result&&<><CareerReport text={result} role={role} model={model} usedSlot={usedSlot} onCopy={()=>void copy(result)}/>{attempts.length>0&&<p className="tf-hint">Key sebelumnya tidak berjaya: {attempts.map(a=>`#${a.slot} (${a.status})`).join(", ")}</p>}</>}
+  <AICareerCoach key={role} role={role} model={model} apiKey={valid[0]||""} disabled={busy||testing||vaultBusy}/>
   <div className="tf-gemini-fallback"><div><strong>Tiada API key? Gunakan AI pilihan anda.</strong><p>Anda masih boleh salin prompt analisis profesional dan tampal dalam ChatGPT, Gemini atau Claude tanpa sambungan API pada website.</p></div><button className="tf-btn tf-btn-outline" type="button" onClick={()=>void copy(analysisPrompt)}><Copy size={14}/>{copied?"Disalin":"Salin Prompt Analisis"}</button><Link href="/prompt-generator">Buka Prompt Generator</Link></div>
   <p className="tf-muted">Gemini memberikan cadangan berdasarkan data kendiri; ia tidak mengesahkan sijil atau tahap kemahiran. Setiap panggilan API tertakluk kepada kuota dan caj akaun Google anda.</p>
   <ConfirmDialog
