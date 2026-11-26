@@ -15,7 +15,9 @@ BEGIN
  IF has_schema_privilege('authenticated','tf_institution_private','USAGE') OR has_table_privilege('authenticated','tf_institution_private.invitations','SELECT')
  OR has_function_privilege('anon','public.tf_issue_institution_invite(uuid,text,text)','EXECUTE')
  OR has_function_privilege('anon','public.tf_accept_institution_invite(text)','EXECUTE')
- OR has_function_privilege('anon','public.tf_revoke_institution_invite(uuid,uuid)','EXECUTE') THEN
+ OR has_function_privilege('anon','public.tf_revoke_institution_invite(uuid,uuid)','EXECUTE')
+ OR has_function_privilege('anon','public.tf_preview_institution_invite(text)','EXECUTE')
+ OR has_function_privilege('anon','public.tf_list_institution_invites(uuid)','EXECUTE') THEN
   RAISE EXCEPTION 'Unexpected invitation access';
  END IF;
 END $inviteqa$;
@@ -38,7 +40,14 @@ BEGIN
  IF issued.invite_token !~ '^[a-f0-9]{64}$' OR issued.valid_until<=now() THEN RAISE EXCEPTION 'Invalid issued token'; END IF;
  SELECT * INTO revoked FROM public.tf_issue_institution_invite('66000000-0000-4000-8000-000000000001','invite-other@example.invalid','lecturer');
  IF NOT public.tf_revoke_institution_invite('66000000-0000-4000-8000-000000000001',revoked.invite_id) THEN RAISE EXCEPTION 'Revocation failed'; END IF;
+ IF (SELECT count(*) FROM public.tf_list_institution_invites('66000000-0000-4000-8000-000000000001'))<>2 THEN RAISE EXCEPTION 'Admin invite history missing'; END IF;
  PERFORM set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000003',true);
+ IF EXISTS(SELECT 1 FROM public.tf_preview_institution_invite(issued.invite_token)) THEN RAISE EXCEPTION 'Wrong-email preview leak'; END IF;
+ BEGIN
+  PERFORM public.tf_list_institution_invites('66000000-0000-4000-8000-000000000001');
+  RAISE EXCEPTION 'Non-admin history access';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
  BEGIN
   PERFORM public.tf_accept_institution_invite(issued.invite_token);
   RAISE EXCEPTION 'Wrong email accepted invitation';
@@ -55,7 +64,9 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
  PERFORM set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000002',true);
+ IF (SELECT count(*) FROM public.tf_preview_institution_invite(issued.invite_token) WHERE institution_name='Synthetic Invite Institution' AND invite_role='student')<>1 THEN RAISE EXCEPTION 'Recipient preview invalid'; END IF;
  target:=public.tf_accept_institution_invite(issued.invite_token);
+ IF EXISTS(SELECT 1 FROM public.tf_preview_institution_invite(issued.invite_token)) THEN RAISE EXCEPTION 'Used invitation preview allowed'; END IF;
  IF target<>'66000000-0000-4000-8000-000000000001'::uuid OR NOT EXISTS(SELECT 1 FROM public.institution_memberships WHERE institution_id=target AND role='student' AND status='active') THEN
   RAISE EXCEPTION 'Invitation acceptance failed';
  END IF;
@@ -87,4 +98,34 @@ BEGIN
  IF (SELECT count(*) FROM tf_institution_private.invitations WHERE accepted_at IS NOT NULL)<>1 THEN RAISE EXCEPTION 'Unexpected redemption count'; END IF;
  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='tf_institution_private' AND table_name='invitations' AND column_name='invite_token') THEN RAISE EXCEPTION 'Raw token storage'; END IF;
 END $inviteqa$;
+
+-- Explicit expired and suspended-issuer fixtures (no production changes).
+INSERT INTO tf_institution_private.invitations(institution_id,issued_by,recipient_email,role,token_digest,created_at,expires_at) VALUES
+ ('66000000-0000-4000-8000-000000000001','65000000-0000-4000-8000-000000000001','invite-other@example.invalid','lecturer',sha256(convert_to(repeat('a',64),'UTF8')),now()-interval '8 days',now()-interval '1 day'),
+ ('66000000-0000-4000-8000-000000000001','65000000-0000-4000-8000-000000000001','invite-other@example.invalid','lecturer',sha256(convert_to(repeat('b',64),'UTF8')),now(),now()+interval '1 day');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000003',true);
+DO $inviteqa$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tf_preview_institution_invite(repeat('a',64))) THEN RAISE EXCEPTION 'Expired preview allowed'; END IF;
+ BEGIN
+  PERFORM public.tf_accept_institution_invite(repeat('a',64));
+  RAISE EXCEPTION 'Expired token accepted';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $inviteqa$;
+RESET ROLE;
+UPDATE public.institution_memberships SET status='suspended' WHERE user_id='65000000-0000-4000-8000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000003',true);
+DO $inviteqa$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.tf_preview_institution_invite(repeat('b',64))) THEN RAISE EXCEPTION 'Suspended issuer preview allowed'; END IF;
+ BEGIN
+  PERFORM public.tf_accept_institution_invite(repeat('b',64));
+  RAISE EXCEPTION 'Suspended issuer token accepted';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $inviteqa$;
+RESET ROLE;
 ROLLBACK;
