@@ -54,7 +54,7 @@ BEGIN
  IF affected<>0 THEN RAISE EXCEPTION 'Cross-user profile update allowed'; END IF;
 END $$;
 -- 5D: owner-only learning milestones and mentor notes.
-DO $
+DO $learning_qa$
 BEGIN
  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE oid='public.learning_progress'::regclass AND relrowsecurity) THEN
   RAISE EXCEPTION 'Learning progress RLS is disabled';
@@ -62,12 +62,12 @@ BEGIN
  IF has_table_privilege('anon','public.learning_progress','SELECT') OR has_table_privilege('anon','public.learning_progress','INSERT') THEN
   RAISE EXCEPTION 'Anonymous learning progress access';
  END IF;
-END $;
+END $learning_qa$;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 INSERT INTO public.learning_progress(user_id,role_id,milestone_day,status,evidence_note,mentor_note,next_action)
  VALUES ('11111111-1111-4111-8111-111111111111','cloud',30,'in_progress','Synthetic private evidence','Synthetic private mentor note','Synthetic action');
 UPDATE public.learning_progress SET status='completed' WHERE user_id='11111111-1111-4111-8111-111111111111' AND role_id='cloud' AND milestone_day=30;
-DO $
+DO $learning_qa$
 BEGIN
  IF (SELECT count(*) FROM public.learning_progress WHERE role_id='cloud' AND status='completed')<>1 THEN
   RAISE EXCEPTION 'Owner learning write failed';
@@ -88,9 +88,9 @@ BEGIN
   RAISE EXCEPTION 'Oversized mentor note allowed';
  EXCEPTION WHEN check_violation THEN NULL;
  END;
-END $;
+END $learning_qa$;
 SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
-DO $
+DO $learning_qa$
 DECLARE affected integer;
 BEGIN
  IF EXISTS(SELECT 1 FROM public.learning_progress WHERE user_id='11111111-1111-4111-8111-111111111111') THEN
@@ -108,7 +108,7 @@ BEGIN
   RAISE EXCEPTION 'Cross-user learning insert allowed';
  EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
-END $;
+END $learning_qa$;
 RESET ROLE;
 SET LOCAL ROLE anon;
 DO $$
