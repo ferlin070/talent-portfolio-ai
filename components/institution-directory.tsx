@@ -3,6 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import {Building2,GraduationCap,Users,ShieldCheck} from "lucide-react";
 import {getSupabaseClient} from "@/lib/supabase";
 import InstitutionAdmin from "@/components/institution-admin";
+import {InviteAdmin,InviteRecipient} from "@/components/institution-invitations";
 
 type Membership={institution_id:string;role:"institution_admin"|"lecturer"|"student"};
 type Institution={id:string;name:string;slug:string};
@@ -64,6 +65,8 @@ export default function InstitutionDirectory({userId}:{userId:string}){
    {notice&&<p role="status">{notice}</p>}
    {shown&&membership?.role==="institution_admin"&&<InstitutionAdmin key={selected+":"+revision} institutionId={selected} userId={userId} programmes={shown.programmes} cohorts={shown.cohorts} onSaved={message=>{setNotice(message);setRevision(v=>v+1)}}/>}
   </>}
+  {shown&&membership?.role==="institution_admin"&&<InviteAdmin key={selected} institutionId={selected} userId={userId}/>}
+  <InviteRecipient key={userId} userId={userId} onJoined={()=>{setNotice("");setRetry(v=>v+1)}}/>
   <button className="tf-career-secondary" type="button" disabled={loading} onClick={()=>{setNotice("");setRetry(v=>v+1)}}>Muat semula keahlian</button>
   <p className="tf-career-note"><ShieldCheck size={16}/> Peranan ditentukan oleh keahlian pangkalan data. Admin aktif boleh mencipta dan menyunting program serta kelas sendiri. Tiada pengubahan peranan, pemadaman rekod atau akses automatik kepada portfolio peribadi.</p>
  </section>
