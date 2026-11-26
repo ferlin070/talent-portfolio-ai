@@ -1,4 +1,4 @@
-# Phase 5 — Career Intelligence (5A–5B)
+# Phase 5 — Career Intelligence (5A–5C)
 
 Base: production release 1b159ff. Preview only until acceptance and release approval.
 
@@ -21,5 +21,11 @@ Base: production release 1b159ff. Preview only until acceptance and release appr
 - Four additional regression tests and local authenticated browser QA for matching, evidence exclusion, language switching, editing and file download.
 - Same release gate as 5A; CI results pending. No production changes or new dependencies.
 
+## Phase 5C — Gemini Coach
+- Interview feedback and career questions, Malay or English. Explicit per-request consent; only role, question and user-entered answer/context sent to Gemini. No other profile records are retrieved by this endpoint.
+- Reuse existing BYOK/vault UI and model allowlist, first valid key only. Existing verified-user analysis quota (five/hour shared with skills analysis), strict Origin, bounded JSON input, 45s provider timeout, no automatic retries, generic provider errors, no key in URL or response.
+- Strict five-field JSON feedback with STOP finish reason; incomplete or malformed responses rejected, thought parts excluded, plain text rendering. Not a hiring assessment; human review required.
+- No new database, subscription, persistent answers or production release. Provider free-tier availability and charges depend on the user's Google project; no actual provider call in automated tests. Added two unit tests, mocked route test and browser consent checks.
+
 ## Next increments
-5C: consented Gemini interview coaching and career feedback, reuse secure key vault and enforce quotas. 5D: learning progress and mentor review with RLS design, privacy and separate migration review. Do not claim job listings are live or ATS scores are official.
+5D: learning progress and mentor review with RLS design, privacy and separate migration review. Do not claim job listings are live or ATS scores are official.
