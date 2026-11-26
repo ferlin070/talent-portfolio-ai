@@ -84,4 +84,88 @@ BEGIN
  IF EXISTS(SELECT 1 FROM public.institutions) OR EXISTS(SELECT 1 FROM public.institution_cohorts) OR EXISTS(SELECT 1 FROM public.institution_cohort_assignments) THEN RAISE EXCEPTION 'Suspended institution access'; END IF;
 END $tf6$;
 RESET ROLE;
+UPDATE public.institutions SET status='active' WHERE slug='tf6-fixture-a';
+DO $tf6write$
+BEGIN
+ IF has_column_privilege('authenticated','public.institution_programmes','institution_id','UPDATE')
+ OR has_column_privilege('authenticated','public.institution_programmes','id','INSERT')
+ OR has_column_privilege('authenticated','public.institution_cohorts','programme_id','UPDATE')
+ OR has_column_privilege('authenticated','public.institution_cohorts','institution_id','UPDATE')
+ OR has_any_column_privilege('authenticated','public.institution_memberships','INSERT')
+ OR has_any_column_privilege('authenticated','public.institution_cohort_assignments','UPDATE') THEN
+  RAISE EXCEPTION 'Overbroad institution write grants';
+ END IF;
+END $tf6write$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','61000000-0000-4000-8000-000000000001',true);
+DO $tf6write$
+DECLARE new_programme uuid; new_cohort uuid; affected integer;
+BEGIN
+ INSERT INTO public.institution_programmes(institution_id,name,code)
+ VALUES ('62000000-0000-4000-8000-000000000001','New synthetic programme','NEW') RETURNING id INTO new_programme;
+ INSERT INTO public.institution_cohorts(institution_id,programme_id,name)
+ VALUES ('62000000-0000-4000-8000-000000000001',new_programme,'New synthetic cohort') RETURNING id INTO new_cohort;
+ UPDATE public.institution_programmes SET name='Updated synthetic programme' WHERE id=new_programme;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Admin programme edit failed'; END IF;
+ UPDATE public.institution_cohorts SET name='Updated synthetic cohort' WHERE id=new_cohort;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Admin cohort edit failed'; END IF;
+ BEGIN
+  INSERT INTO public.institution_programmes(institution_id,name,code) VALUES ('62000000-0000-4000-8000-000000000002','Forbidden','FORBID');
+  RAISE EXCEPTION 'Cross-tenant admin insert allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ UPDATE public.institution_programmes SET name='Forbidden' WHERE institution_id='62000000-0000-4000-8000-000000000002';
+ GET DIAGNOSTICS affected=ROW_COUNT;
+ IF affected<>0 THEN RAISE EXCEPTION 'Cross-tenant admin update allowed'; END IF;
+ BEGIN
+  UPDATE public.institution_cohorts SET programme_id='63000000-0000-4000-8000-000000000001' WHERE id=new_cohort;
+  RAISE EXCEPTION 'Cohort parent reassignment allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ BEGIN
+  DELETE FROM public.institution_programmes WHERE id=new_programme;
+  RAISE EXCEPTION 'Admin delete allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+ BEGIN
+  INSERT INTO public.institution_cohorts(institution_id,programme_id,name) VALUES ('62000000-0000-4000-8000-000000000001','63000000-0000-4000-8000-000000000003','Forbidden');
+  RAISE EXCEPTION 'Cross-tenant cohort parent allowed';
+ EXCEPTION WHEN foreign_key_violation THEN NULL;
+ END;
+END $tf6write$;
+SELECT set_config('request.jwt.claim.sub','61000000-0000-4000-8000-000000000002',true);
+DO $tf6write$
+DECLARE affected integer;
+BEGIN
+ UPDATE public.institution_programmes SET name='Forbidden' WHERE code='CLD';
+ GET DIAGNOSTICS affected=ROW_COUNT;
+ IF affected<>0 THEN RAISE EXCEPTION 'Lecturer programme update allowed'; END IF;
+ BEGIN
+  INSERT INTO public.institution_cohorts(institution_id,programme_id,name) VALUES ('62000000-0000-4000-8000-000000000001','63000000-0000-4000-8000-000000000001','Forbidden');
+  RAISE EXCEPTION 'Lecturer cohort insert allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $tf6write$;
+SELECT set_config('request.jwt.claim.sub','61000000-0000-4000-8000-000000000003',true);
+DO $tf6write$
+BEGIN
+ BEGIN
+  INSERT INTO public.institution_programmes(institution_id,name,code) VALUES ('62000000-0000-4000-8000-000000000002','Forbidden','FORBID');
+  RAISE EXCEPTION 'Student programme insert allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $tf6write$;
+RESET ROLE;
+UPDATE public.institution_memberships SET status='suspended' WHERE user_id='61000000-0000-4000-8000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','61000000-0000-4000-8000-000000000001',true);
+DO $tf6write$
+BEGIN
+ BEGIN
+  INSERT INTO public.institution_programmes(institution_id,name,code) VALUES ('62000000-0000-4000-8000-000000000001','Forbidden','FORBID');
+  RAISE EXCEPTION 'Suspended admin insert allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $tf6write$;
+RESET ROLE;
 ROLLBACK;
