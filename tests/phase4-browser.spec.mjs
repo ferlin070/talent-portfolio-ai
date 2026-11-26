@@ -18,7 +18,7 @@ for (const width of [360,390,768,1440]) {
 }
 
 test("unauthenticated workspace routes redirect to sign in",async({page})=>{
- for(const route of ["/dashboard","/portfolio","/skills","/settings","/resume","/certificates"]){
+ for(const route of ["/dashboard","/portfolio","/skills","/settings","/resume","/certificates","/institution"]){
   await page.goto(route);
   const url=new URL(page.url());
   expect(url.pathname).toBe("/auth");
