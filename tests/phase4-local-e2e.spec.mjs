@@ -52,6 +52,28 @@ test("real local Auth, owner isolation, nine published templates and unpublish",
    expect(result?.status()).toBe(200);
    await expect(page).toHaveURL(origin+route);
   }
+  await page.goto(origin+"/skills");
+  const studio=page.getByRole("region",{name:"Career Studio",exact:true});
+  await expect(studio).toBeVisible({timeout:30000});
+  await studio.getByLabel("Syarat kemahiran").fill("TALENTFOLIOQA-SKILL\nUnknown-qa-skill");
+  await studio.getByRole("button",{name:"Semak padanan"}).click();
+  await expect(studio.getByText("1 daripada 2 syarat mempunyai padanan nama kemahiran.")).toBeVisible();
+  await expect(studio.getByRole("progressbar",{name:"Liputan nama kemahiran"})).toHaveAttribute("value","50");
+  await studio.getByLabel("Syarat kemahiran").fill(" ");
+  await studio.getByRole("button",{name:"Semak padanan"}).click();
+  await expect(studio.getByRole("alert")).toBeVisible();
+  await expect(studio.getByText("HARI 30",{exact:true})).toBeVisible();
+  await studio.getByRole("button",{name:"Lihat panduan jawapan"}).click();
+  await expect(studio.getByRole("button",{name:"Sembunyikan panduan"})).toHaveAttribute("aria-expanded","true");
+  await studio.getByLabel("Jawapan latihan").fill("Synthetic STAR practice answer");
+  await studio.getByRole("button",{name:"Tandakan sudah dilatih"}).click();
+  await studio.getByRole("button",{name:"Soalan seterusnya"}).click();
+  await expect(studio.getByText(/Soalan 2\//)).toBeVisible();
+  await studio.getByRole("button",{name:"Mula semula"}).click();
+  await expect(studio.getByText(/Soalan 1\//)).toBeVisible();
+  await page.setViewportSize({width:390,height:844});
+  expect(await studio.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"Career Studio mobile overflow").toBe(true);
+  await page.setViewportSize({width:1440,height:900});
   const session=checked(await owner.auth.getSession(),"owner session").session;
   const headers={authorization:"Bearer "+session.access_token,origin};
   const endpoint=origin+"/api/portfolio/publish";
