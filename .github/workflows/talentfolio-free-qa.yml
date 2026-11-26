@@ -109,7 +109,10 @@ jobs:
           if [ ! -f supabase/config.toml ]; then
             npx --yes supabase@2.79.0 init
           fi
-          npx --yes supabase@2.79.0 start
+          # Confirm the pinned CLI supports exclusion; email capture is not needed
+          # for these admin-confirmed synthetic users.
+          npx --yes supabase@2.79.0 start --help
+          npx --yes supabase@2.79.0 start -x inbucket
           npx --yes supabase@2.79.0 db reset --local --no-seed
       - name: Test migration and RLS on localhost only
         run: |
