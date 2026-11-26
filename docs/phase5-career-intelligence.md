@@ -1,4 +1,4 @@
-# Phase 5 — Career Intelligence (5A–5C)
+# Phase 5 — Career Intelligence (5A–5D)
 
 Base: production release 1b159ff. Preview only until acceptance and release approval.
 
@@ -27,5 +27,12 @@ Base: production release 1b159ff. Preview only until acceptance and release appr
 - Strict five-field JSON feedback with STOP finish reason; incomplete or malformed responses rejected, thought parts excluded, plain text rendering. Not a hiring assessment; human review required.
 - No new database, subscription, persistent answers or production release. Provider free-tier availability and charges depend on the user's Google project; no actual provider call in automated tests. Added two unit tests, mocked route test and browser consent checks.
 
-## Next increments
-5D: learning progress and mentor review with RLS design, privacy and separate migration review. Do not claim job listings are live or ATS scores are official.
+## Phase 5D — Learning Progress & Mentor Journal
+- Private persisted milestones for the six current target roles; three rows per role (30, 60, 90), status, evidence notes, self-recorded mentor feedback and next action. Saved progress is not verified competence.
+- Migration 0012: bounded fields, composite primary key, auth user foreign key, explicit authenticated grants and owner RLS for SELECT/INSERT/UPDATE/DELETE; no anonymous privileges. No SECURITY DEFINER function or public snapshot extension.
+- Browser loads only owner and selected role; validates current user before save, shows unavailable state if migration is absent, distinguishes unsaved from saved progress. Notes are not sent to Gemini or public portfolio.
+- Mentor journal is learner-entered feedback, not verified mentor-authored review. A separate mentor identity, invitation, permissions and review workflow belongs in the institution phase.
+- Added SQL and real local browser checks for limits, ownership, anonymous denial, save/reload, mobile and snapshot exclusion.
+- Migration drafted in existing repository numbering because local CLI is unavailable; local CI applies all migrations. Production still has 11 migrations; 0012 requires separate owner-approved release and preflight.
+- CI #47: app build and native PostgreSQL passed; local Supabase failed on Inbucket port 54324, before E2E. Excluded unused email capture service on pinned CLI; re-run must verify.
+- All Phase 5 changes remain draft PR #4. Verify latest CI, preview, dark mode/keyboard and actual Gemini availability before release. No paid resources or production changes authorized by this development step.
