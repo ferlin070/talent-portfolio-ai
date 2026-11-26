@@ -16,3 +16,5 @@
 .tf-career-note{display:flex;align-items:flex-start;gap:8px;color:var(--tf-muted);font-size:12px;line-height:1.6;margin:18px 0 0}.tf-career-note svg{flex:none}
 @media(max-width:1000px){.tf-career-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.tf-career-tile{padding:13px}.tf-career-actions>*{flex:1 1 100%}.tf-career-header h2{font-size:21px}}
+
+.tf-application-evidence{border:1px solid var(--tf-line);border-radius:10px;min-width:0;padding:10px;max-height:260px;overflow-y:auto}.tf-application-evidence legend{font-size:13px;font-weight:700;padding:0 5px}.tf-application-evidence label{display:flex!important;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--tf-line);overflow-wrap:anywhere}.tf-application-evidence label:last-child{border:0}.tf-application-evidence input[type=checkbox]{flex:none;width:18px;height:18px;margin-top:3px;accent-color:var(--tf-blue)}.tf-application-evidence span{min-width:0}.tf-career-tile .tf-form>input,.tf-career-tile .tf-form>select{width:100%;min-width:0;background:var(--tf-bg);color:var(--tf-ink);border:1px solid var(--tf-line);border-radius:9px;padding:10px}
