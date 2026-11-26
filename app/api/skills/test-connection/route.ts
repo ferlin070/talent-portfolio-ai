@@ -29,7 +29,13 @@ export async function POST(req:NextRequest){
    body:JSON.stringify({contents:[{parts:[{text:"Balas dengan perkataan OK sahaja."}]}],generationConfig:{maxOutputTokens:64,temperature:0}})
   });
   const seconds=Math.round((Date.now()-started)/1000);
-  if(res.ok)return respond({ok:true,seconds,model,message:"Sambungan berjaya. Key dan model dapat menjana respons ujian ringkas."});
+  if(res.ok){
+   const payload=await res.json().catch(()=>null) as {candidates?:Array<{finishReason?:string;content?:{parts?:Array<{text?:string;thought?:boolean}>}}> }|null;
+   const candidate=payload?.candidates?.[0];
+   const text=(candidate?.content?.parts||[]).filter(p=>!p.thought&&typeof p.text==="string").map(p=>p.text).join("").trim();
+   if(candidate?.finishReason!=="STOP"||!text)return respond({ok:false,seconds,model,error:"Gemini tidak menghasilkan respons ujian lengkap."},502);
+   return respond({ok:true,seconds,model,message:"Sambungan berjaya. Key dan model dapat menjana respons ujian ringkas."});
+  }
   return respond({ok:false,httpStatus:res.status,seconds,
    error:res.status===429?"Kuota model telah dicapai (429).":
    res.status===503?"Gemini terlalu sibuk (503).":

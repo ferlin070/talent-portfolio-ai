@@ -75,13 +75,13 @@ BEGIN
 END$$;
 
 -- Gallery paths must belong to the expected project, not just the account.
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='tf_gallery_path_project') THEN
     ALTER TABLE public.project_images ADD CONSTRAINT tf_gallery_path_project
       CHECK (storage_path LIKE user_id::text || '/' || project_id::text || '/%');
   END IF;
-END$;
+END; $$;
 
 -- 1.5: Prevent duplicate skill names by case-insensitive owner+name.
 CREATE UNIQUE INDEX IF NOT EXISTS tf_skills_owner_name_ci
@@ -152,7 +152,7 @@ BEGIN
  END IF;
  RETURN NEW;
 END; $$;
-REVOKE ALL ON FUNCTION public.tf_storage_object_quota() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tf_storage_object_quota() FROM PUBLIC, anon, authenticated;
 DROP TRIGGER IF EXISTS tf_storage_object_quota_insert ON storage.objects;
 CREATE TRIGGER tf_storage_object_quota_insert BEFORE INSERT ON storage.objects
  FOR EACH ROW WHEN (NEW.bucket_id IN ('profile-photos','certificates','project-gallery'))
@@ -207,7 +207,7 @@ SELECT jsonb_build_object(
 FROM public.profiles pr
 WHERE pr.user_id=p_owner AND pr.user_id=(SELECT auth.uid());
 $$;
-REVOKE ALL ON FUNCTION public.tf_build_public_snapshot(uuid,jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tf_build_public_snapshot(uuid,jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.tf_build_public_snapshot(uuid,jsonb) TO authenticated;
 
 -- Guard direct REST writes: published snapshots are always rebuilt from owned DB data.
@@ -282,7 +282,7 @@ BEGIN
   END;
   RETURN NEXT;
 END; $$;
-REVOKE ALL ON FUNCTION public.publish_portfolio(text,text,jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.publish_portfolio(text,text,jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.publish_portfolio(text,text,jsonb) TO authenticated;
 
 -- 1.5: Setting the gallery cover is now atomic under a project row lock.
@@ -304,7 +304,7 @@ BEGIN
  UPDATE public.project_images SET is_cover=true
   WHERE id=p_image_id AND user_id=owner_id AND project_id=target_project;
 END; $$;
-REVOKE ALL ON FUNCTION public.set_project_cover(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.set_project_cover(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.set_project_cover(uuid) TO authenticated;
 CREATE UNIQUE INDEX IF NOT EXISTS tf_project_single_cover
   ON public.project_images (project_id) WHERE is_cover;
@@ -346,7 +346,7 @@ BEGIN
   IF TG_OP='DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END; $$;
-REVOKE ALL ON FUNCTION public.tf_queue_storage_delete() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.tf_queue_storage_delete() FROM PUBLIC, anon, authenticated;
 DROP TRIGGER IF EXISTS tf_gallery_queue_cleanup ON public.project_images;
 CREATE TRIGGER tf_gallery_queue_cleanup AFTER DELETE ON public.project_images
  FOR EACH ROW EXECUTE FUNCTION public.tf_queue_storage_delete();
@@ -396,10 +396,12 @@ BEGIN
  retry_after:=CASE WHEN allowed THEN 0 ELSE greatest(1,ceil(extract(epoch from (period+interval '1 hour'-now())))::integer) END;
  RETURN NEXT;
 END; $$;
-REVOKE ALL ON FUNCTION public.consume_api_quota(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.consume_api_quota(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.consume_api_quota(text) TO authenticated;
 CREATE INDEX IF NOT EXISTS tf_api_usage_recent ON public.api_usage (window_start);
 
+-- Trigger-only functions must not be exposed as RPCs.
+REVOKE ALL ON FUNCTION public.tf_gallery_quota(), public.tf_certificate_quota(), public.tf_publication_guard() FROM PUBLIC, anon, authenticated;
 COMMIT;
 
 -- Production operator: test RLS anon enumeration, owner A vs owner B, and

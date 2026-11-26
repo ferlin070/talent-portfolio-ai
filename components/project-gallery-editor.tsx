@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useMemo,useState,useRef,type ChangeEvent} from "react";
 import {ArrowDown,ArrowUp,Camera,Check,ImagePlus,Images,Save,Star,Trash2,UploadCloud} from "lucide-react";
 import {getSupabaseClient} from "@/lib/supabase";
+import ConfirmDialog from "@/components/confirm-dialog";
 
 export type GalleryImage={id:string;project_id:string;user_id:string;storage_path:string;caption:string;sort_order:number;is_cover:boolean;created_at:string};
 export type GalleryProject={id:string;title:string;description:string;url:string|null;is_public:boolean};
@@ -14,6 +15,7 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
  const [selected,setSelected]=useState("");
  const [images,setImages]=useState<GalleryImage[]>([]);
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState("");
+ const [pendingDeletion,setPendingDeletion]=useState<GalleryImage|null>(null);
  const fileInput=useRef<HTMLInputElement>(null);
  const [previews,setPreviews]=useState<string[]>([]);
  const [files,setFiles]=useState<File[]>([]),[dragActive,setDragActive]=useState(false),[draft,setDraft]=useState({title:"",description:"",url:"",is_public:false});
@@ -60,7 +62,19 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
   });
 }
  async function move(im:GalleryImage,step:number){const i=images.findIndex(x=>x.id===im.id),other=images[i+step];if(!other)return;await act(async()=>{const {error:e1}=await supabase.from("project_images").update({sort_order:other.sort_order}).eq("id",im.id).eq("user_id",userId);if(e1)throw e1;const {error:e2}=await supabase.from("project_images").update({sort_order:im.sort_order}).eq("id",other.id).eq("user_id",userId);if(e2)throw e2;});}
- async function remove(im:GalleryImage){if(!confirm("Padam gambar dan kapsyen ini?"))return;await act(async()=>{const {error:e}=await supabase.from("project_images").delete().eq("id",im.id).eq("user_id",userId);if(e)throw e;const {error:se}=await supabase.storage.from(BUCKET).remove([im.storage_path]);if(se)throw new Error("Metadata dipadam, tetapi fail gagal dipadam: "+se.message);setNotice("Gambar dipadam.");});}
+ async function removeConfirmed(){
+ const image=pendingDeletion;
+ setPendingDeletion(null);
+ if(!image)return;
+ await act(async()=>{
+  const {error}=await supabase.from("project_images")
+   .delete().eq("id",image.id).eq("user_id",userId);
+  if(error)throw error;
+  const removal=await supabase.storage.from(BUCKET).remove([image.storage_path]);
+  if(removal.error)throw new Error("Metadata dipadam, tetapi fail masih perlu dibersihkan: "+removal.error.message);
+  setNotice("Gambar dipadam.");
+ });
+}
  if(!projects.length)return null;
  return <section className="tf-card tf-section tf-gallery-editor">
    <div className="tf-card-head"><div><h3>Work Photo Gallery</h3><p>Muat naik hasil kerja, susun gambar dan ceritakan proses projek anda.</p></div><span className="tf-pill"><Images size={14}/> {images.length}/{MAX_PER_PROJECT} images</span></div>
@@ -80,7 +94,16 @@ export default function ProjectGalleryEditor({userId,projects,onChanged}:{userId
    <div className="tf-gallery-privacy"><Camera size={17}/><div><strong>Penting tentang privasi gambar:</strong> fail galeri disimpan dalam storan awam mengikut URL, walaupun projek belum diterbitkan. Hanya tajuk, gambar dan penerangan projek yang anda pilih akan dipaparkan dalam portfolio. Jangan muat naik gambar sulit. Selepas membuat perubahan, tekan <strong>Publish Portfolio</strong> semula.</div></div>
    {notice&&<p role="status" className="tf-gallery-message">{notice}</p>}
    {loading?<p>Memuatkan galeri...</p>:images.length===0?<div className="tf-gallery-empty"><Images size={29}/><b>Tiada gambar lagi</b><span>Tambah gambar kerja pertama untuk projek ini.</span></div>:
-   <div className="tf-gallery-items">{images.map((im,i)=>{const src=supabase.storage.from(BUCKET).getPublicUrl(im.storage_path).data.publicUrl;return <article key={im.id} className="tf-gallery-item"><div className="tf-gallery-item-photo"><img alt={im.caption||`Gambar ${i+1} projek ${project.title}`} src={src} loading="lazy"/>{im.is_cover&&<span className="tf-gallery-cover"><Star size={13}/> Cover</span>}</div><div className="tf-gallery-item-body"><label>Kapsyen gambar<textarea rows={2} maxLength={500} placeholder="Contoh: Reka bentuk dashboard selepas penambahbaikan..." value={captions[im.id]??im.caption} onChange={e=>setCaptions(prev=>({...prev,[im.id]:e.target.value}))}/></label><div className="tf-gallery-item-actions"><button type="button" title="Simpan kapsyen" disabled={busy} onClick={()=>void saveCaption(im)}><Check size={15}/> Save</button><button type="button" title="Jadikan gambar utama" disabled={busy||im.is_cover} onClick={()=>void cover(im)}><Star size={15}/></button><button type="button" title="Alih ke kiri" disabled={busy||i===0} onClick={()=>void move(im,-1)}><ArrowUp size={15}/></button><button type="button" title="Alih ke kanan" disabled={busy||i===images.length-1} onClick={()=>void move(im,1)}><ArrowDown size={15}/></button><button type="button" title="Padam gambar" disabled={busy} onClick={()=>void remove(im)}><Trash2 size={15}/></button></div></div></article>})}</div>}
+   <div className="tf-gallery-items">{images.map((im,i)=>{const src=supabase.storage.from(BUCKET).getPublicUrl(im.storage_path).data.publicUrl;return <article key={im.id} className="tf-gallery-item"><div className="tf-gallery-item-photo"><img alt={im.caption||`Gambar ${i+1} projek ${project.title}`} src={src} loading="lazy"/>{im.is_cover&&<span className="tf-gallery-cover"><Star size={13}/> Cover</span>}</div><div className="tf-gallery-item-body"><label>Kapsyen gambar<textarea rows={2} maxLength={500} placeholder="Contoh: Reka bentuk dashboard selepas penambahbaikan..." value={captions[im.id]??im.caption} onChange={e=>setCaptions(prev=>({...prev,[im.id]:e.target.value}))}/></label><div className="tf-gallery-item-actions"><button type="button" title="Simpan kapsyen" disabled={busy} onClick={()=>void saveCaption(im)}><Check size={15}/> Save</button><button type="button" title="Jadikan gambar utama" disabled={busy||im.is_cover} onClick={()=>void cover(im)}><Star size={15}/></button><button type="button" title="Alih ke kiri" disabled={busy||i===0} onClick={()=>void move(im,-1)}><ArrowUp size={15}/></button><button type="button" title="Alih ke kanan" disabled={busy||i===images.length-1} onClick={()=>void move(im,1)}><ArrowDown size={15}/></button><button type="button" title="Padam gambar" disabled={busy} onClick={()=>setPendingDeletion(im)}><Trash2 size={15}/></button></div></div></article>})}</div>}
    </>}
+ <ConfirmDialog
+  open={pendingDeletion!==null}
+  title="Padam gambar projek?"
+  description="Foto ini bersama kapsyen akan dipadam secara kekal daripada galeri."
+  confirmLabel="Padam Gambar"
+  danger busy={busy}
+  onClose={()=>setPendingDeletion(null)}
+  onConfirm={()=>void removeConfirmed()}
+ />
  </section>;
 }

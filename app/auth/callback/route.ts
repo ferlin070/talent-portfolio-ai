@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { safeNext } from "@/lib/safe-next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-function destination(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
-  }
-  return value;
-}
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const type = request.nextUrl.searchParams.get("type");
   const isRecovery = type === "recovery";
-  const next = destination(request.nextUrl.searchParams.get("next"));
+  const next = safeNext(request.nextUrl.searchParams.get("next"));
 
   if (code) {
     const client = await createSupabaseServerClient();

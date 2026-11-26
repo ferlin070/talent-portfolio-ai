@@ -20,27 +20,8 @@ export type CareerTarget = {
 /** These targets are illustrative, not validated industry qualification levels. */
 export const CAREER_TARGETS: CareerTarget[] = definitions;
 
-function normalize(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("en")
-    .replace(/[^a-z0-9+#.\/\-]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-/**
- * A recognised phrase must be an independent phrase, never a substring.
- * Example: "C" does NOT match "Cloud Computing", nor "R" match "React".
- */
-export function matchesSkillPhrase(skill: string, phrase: string): boolean {
-  const source = normalize(skill);
-  const expected = normalize(phrase);
-  if (!source || !expected || expected.length < 2) return source === expected && !!source;
-  if (source === expected) return true;
-  return (` ${source} `).includes(` ${expected} `);
-}
+export { matchesSkillPhrase } from "@/lib/skill-match";
+import { matchesSkillPhrase } from "@/lib/skill-match";
 
 export function measureCareerTarget(
   target: CareerTarget,

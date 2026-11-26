@@ -1,0 +1,156 @@
+name: Talentfolio free local QA
+on:
+  pull_request:
+    branches: [feature/phase3-premium-ui]
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: talentfolio-free-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  app-build:
+    if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+      - name: Resolve missing lockfile for this disposable QA run
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+      - name: Install application dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Run source regression tests
+        run: npm run test:phase2 && npm run test:phase3
+      - name: Compile app with local-only placeholder configuration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-only-not-a-real-key
+        run: npm run build
+      - name: Install browser test runner in disposable CI
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.56.1 esbuild@0.25.12
+          npx playwright install --with-deps chromium
+          if ! command -v pdftotext >/dev/null; then sudo apt-get update && sudo apt-get install -y poppler-utils; fi
+      - name: Run public and auth browser smoke tests on localhost
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-only-not-a-real-key
+        run: |
+          set -euo pipefail
+          npm run start -- --hostname 127.0.0.1 > /tmp/talentfolio-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/talentfolio-next.log' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/ > /dev/null
+          npx playwright test tests/phase4-browser.spec.mjs tests/phase4-export.spec.mjs tests/phase4-api.spec.mjs --workers=1 --reporter=line
+  native-postgres-qa:
+    if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Start runner PostgreSQL (no Docker registry)
+        run: |
+          set -euo pipefail
+          if ! command -v pg_lsclusters >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql
+          fi
+          sudo systemctl start postgresql
+          pg_lsclusters
+          sudo -u postgres createdb talentfolio_ci
+      - name: Apply actual migrations and run SQL assertions
+        run: |
+          set -euo pipefail
+          psql_local() { sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d talentfolio_ci "$@"; }
+          psql_local < "$PWD/tests/phase4-postgres-harness.sql"
+          for migration in supabase/migrations/*.sql; do
+            echo "Applying $migration"
+            psql_local < "$PWD/$migration"
+          done
+          psql_local < "$PWD/tests/phase4-local-db.sql"
+      - name: Drop disposable database
+        if: always()
+        run: sudo -u postgres dropdb --if-exists talentfolio_ci
+  full-supabase-qa:
+    # Opt in to the heavier free integration run after the registry limit clears.
+    if: github.repository == 'ferlin070/talent-portfolio-ai' && github.event.repository.private == false && (github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'full-supabase-qa'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+      - name: Start disposable local Supabase
+        run: |
+          set -euo pipefail
+          unset SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID
+          test ! -f supabase/.temp/project-ref
+          if [ ! -f supabase/config.toml ]; then
+            npx --yes supabase@2.79.0 init
+          fi
+          npx --yes supabase@2.79.0 start
+          npx --yes supabase@2.79.0 db reset --local --no-seed
+      - name: Test migration and RLS on localhost only
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f tests/phase4-local-db.sql
+      - name: Install dependencies for real local integration
+        run: |
+          set -euo pipefail
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+          npm ci --no-audit --no-fund
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run authenticated browser and publication E2E on disposable stack
+        run: |
+          set -euo pipefail
+          unset SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID
+          test ! -f supabase/.temp/project-ref
+          status="$(npx --yes supabase@2.79.0 status -o env)"
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(printf '%s\n' "$status" | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')"
+          service="$(printf '%s\n' "$status" | sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p')"
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          test -n "$service"
+          echo "::add-mask::$service"
+          # Never pass the local service-role key to the application build/server.
+          npm run build
+          npm run start -- --hostname 127.0.0.1 > /tmp/talentfolio-local-e2e.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/talentfolio-local-e2e.log' EXIT
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/ > /dev/null
+          TF_CI_LOCAL_SERVICE_ROLE="$service" npx playwright test tests/phase4-local-e2e.spec.mjs --workers=1 --reporter=line
+      - name: Stop disposable stack
+        if: always()
+        run: |
+          unset SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID
+          if [ -f supabase/config.toml ]; then
+            npx --yes supabase@2.79.0 stop --no-backup
+          fi

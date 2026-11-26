@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/lib/request-origin";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -74,7 +75,7 @@ async function removeUserFiles(
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) {
+  if (!isAllowedRequestOrigin(origin, request.url)) {
     return failure("Asal permintaan tidak dibenarkan.", 403);
   }
 
@@ -97,7 +98,11 @@ export async function POST(request: NextRequest) {
     if (new TextEncoder().encode(text).byteLength > 2048) {
       return failure("Permintaan terlalu besar.", 413);
     }
-    input = JSON.parse(text) as DeletionInput;
+    const parsed: unknown = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return failure("Input mesti objek JSON.", 400);
+    }
+    input = parsed as DeletionInput;
   } catch {
     return failure("Input tidak sah.", 400);
   }
