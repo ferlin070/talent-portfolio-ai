@@ -68,3 +68,51 @@ test("Gemini server routes enforce auth, consent, quota and validated mock outpu
   expect(s.responses).toHaveLength(0);
  }finally{globalThis.fetch=originalFetch;delete globalThis.__tfApiFixture;}
 });
+
+test("Gemini coach enforces auth, consent, shared quota and complete feedback with no profile reads",async()=>{
+ const coach=await loadRoute("app/api/career/coach/route.ts");
+ const originalFetch=globalThis.fetch;
+ const s={user:{id:"qa-owner",email_confirmed_at:"2026-01-01"},allowed:true,filters:[],calls:[],responses:[]};
+ globalThis.__tfApiFixture=s;
+ globalThis.fetch=async(url,options)=>{
+  if(!String(url).startsWith("https://generativelanguage.googleapis.com/"))throw Error("Unexpected network destination");
+  s.calls.push({url:String(url),options});
+  if(!s.responses.length)throw Error("Unexpected provider call");
+  return s.responses.shift();
+ };
+ const body={mode:"interview",language:"ms",role:"QA Engineer",question:"Describe a test",answer:"Synthetic response",apiKey:fixtureKey,consent:true};
+ const feedback={summary:"Synthetic feedback",strengths:["Example"],improvements:["More detail"],nextSteps:["Practice"],followUp:"What changed?"};
+ const provider=(value,finishReason="STOP")=>Response.json({candidates:[{finishReason,content:{parts:[{text:"Hidden reasoning",thought:true},{text:JSON.stringify(value)}]}}]});
+ try{
+  expect((await coach(request(body,""))).status).toBe(401);
+  s.user.email_confirmed_at=null;
+  expect((await coach(request(body))).status).toBe(403);
+  s.user.email_confirmed_at="2026-01-01";
+  s.allowed=false;
+  expect((await coach(request(body))).status).toBe(429);
+  s.allowed=true;
+  expect((await coach(request({...body,consent:false}))).status).toBe(400);
+  expect((await coach(request({...body,model:"bad-model"}))).status).toBe(400);
+  expect((await coach(request({...body,answer:""}))).status).toBe(400);
+  expect(s.calls).toHaveLength(0);
+  s.responses.push(provider(feedback));
+  const valid=await coach(request(body));
+  expect(valid.status).toBe(200);
+  const result=await valid.json();
+  expect(result.feedback).toEqual(feedback);
+  expect(JSON.stringify(result)).not.toContain(fixtureKey);
+  expect(s.filters).toHaveLength(0);
+  expect(s.calls[0].options.headers["x-goog-api-key"]).toBe(fixtureKey);
+  expect(s.calls[0].url).not.toContain(fixtureKey);
+  expect(s.calls[0].options.body).not.toContain(fixtureKey);
+  expect(s.calls[0].options.body).toContain("Synthetic response");
+  s.responses.push(provider(feedback,"MAX_TOKENS"),provider({...feedback,nextSteps:[]}));
+  expect((await coach(request(body))).status).toBe(502);
+  expect((await coach(request(body))).status).toBe(502);
+  s.responses.push(Response.json({error:{message:"provider secret details "+fixtureKey}},{status:429}));
+  const limited=await coach(request({...body,mode:"career",answer:""}));
+  expect(limited.status).toBe(429);
+  expect(await limited.text()).not.toContain(fixtureKey);
+  expect(s.responses).toHaveLength(0);
+ }finally{globalThis.fetch=originalFetch;delete globalThis.__tfApiFixture;}
+});
