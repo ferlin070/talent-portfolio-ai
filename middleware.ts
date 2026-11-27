@@ -14,6 +14,7 @@ const protectedPages = new Set([
   "resume",
   "settings",
   "prompt-generator",
+  "institution",
 ]);
 
 
@@ -95,5 +96,6 @@ export const config = {
     "/resume/:path*",
     "/settings/:path*",
     "/prompt-generator/:path*",
+    "/institution/:path*",
   ],
 };
